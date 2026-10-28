@@ -50,7 +50,28 @@ function toast(msg, ms = 2200) {
 function show(id) {
   $$('.screen').forEach(s => s.classList.toggle('active', s.id === id));
   window.scrollTo(0, 0);
+  fitScreen();
 }
+
+// Tudo cabe na tela, sem rolar: se o conteúdo for mais alto que o celular, encolhe proporcionalmente.
+function fitScreen() {
+  const scr = $('.screen.active'); if (!scr) return;
+  const fit = scr.querySelector('.fit'); if (!fit) return;
+  const cs = getComputedStyle(scr);
+  const avail = scr.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  fit.style.transform = ''; fit.style.width = ''; fit.style.minHeight = '0';
+  const natural = fit.scrollHeight;
+  const k = Math.min(1, avail / natural);
+  if (k < 0.995) {
+    // transform (e não zoom) porque se comporta igual em todos os navegadores
+    fit.style.transform = `scale(${k})`; fit.style.width = (100 / k) + '%'; fit.style.minHeight = (avail / k) + 'px';
+  } else fit.style.minHeight = '';
+}
+let fitQueued = false;
+const queueFit = () => { if (fitQueued) return; fitQueued = true; requestAnimationFrame(() => { fitQueued = false; fitScreen(); }); };
+new MutationObserver(queueFit).observe(document.getElementById('app'), { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class'] });
+window.addEventListener('resize', queueFit);
+if (document.fonts) document.fonts.ready.then(queueFit);
 function openModal(id) { $('#m-' + id).classList.add('show'); if (id === 'stats') renderStats(); }
 $$('[data-open]').forEach(b => b.addEventListener('click', () => { A.sfx.tap(); openModal(b.dataset.open); }));
 $$('.modal').forEach(m => m.addEventListener('click', (e) => { if (e.target === m || e.target.closest('[data-close]')) m.classList.remove('show'); }));
@@ -106,6 +127,8 @@ let cats = store.get('cats', Object.keys(CATS));
 function renderCats() {
   $('#cats').innerHTML = Object.entries(CATS).map(([k, v]) =>
     `<button class="cat ${cats.includes(k) ? 'on' : ''}" data-cat="${k}">${v}</button>`).join('');
+  const n = Object.keys(CATS).length;
+  $('#cats-sum').textContent = cats.length === n ? 'Categorias: todas' : `Categorias: ${cats.length} de ${n}`;
 }
 $('#cats').addEventListener('click', (e) => {
   const b = e.target.closest('.cat'); if (!b) return;
@@ -209,31 +232,52 @@ const totalStars = () => Object.values(faseProg()).reduce((a, b) => a + b, 0);
 function currentFase() { const p = faseProg(); let i = 0; while (i < FASES.length - 1 && p[i] > 0) i++; return i; }
 const isUnlocked = (i) => i === 0 || faseProg()[i - 1] > 0;
 
+let mapWorld = null;
 function renderMap() {
   const prog = faseProg(), cur = currentFase();
-  let html = '';
-  for (let wi = 0; wi * PER_WORLD < FASES.length; wi++) {
-    const w = WORLDS[wi % WORLDS.length], from = wi * PER_WORLD, to = Math.min(FASES.length, from + PER_WORLD);
-    let got = 0; for (let i = from; i < to; i++) got += prog[i] || 0;
-    html += `<div class="world" style="--wc:${w.c};--wd:${w.d}"><div class="world-head"><span class="w-emo">${w.emo}</span><div><b>Mundo ${wi + 1}: ${w.name}</b><small>⭐ ${got}/${(to - from) * 3}</small></div></div><div class="nodes">`;
-    for (let i = from; i < to; i++) {
-      const st = prog[i] || 0, locked = !isUnlocked(i), x = Math.round(Math.sin(i * 1.15) * 72);
-      const stars = locked ? '' : [0, 1, 2].map(k => `<span class="${k < st ? '' : 'e'}">⭐</span>`).join('');
-      html += `<div class="node-row" style="--x:${x}px"><button class="node ${locked ? 'locked' : ''} ${i === cur ? 'current' : ''}" data-fase="${i}"><span class="ball">${locked ? '🔒' : i + 1}</span><span class="stars">${stars}</span></button></div>`;
-    }
-    html += '</div></div>';
+  const nW = Math.ceil(FASES.length / PER_WORLD);
+  if (mapWorld == null) mapWorld = Math.floor(cur / PER_WORLD);
+  mapWorld = Math.max(0, Math.min(nW - 1, mapWorld));
+  const w = WORLDS[mapWorld % WORLDS.length], from = mapWorld * PER_WORLD, to = Math.min(FASES.length, from + PER_WORLD);
+  const world = $('#world');
+  world.style.setProperty('--wc', w.c); world.style.setProperty('--wd', w.d);
+  let got = 0; for (let i = from; i < to; i++) got += prog[i] || 0;
+  $('#w-emo').textContent = w.emo;
+  $('#w-name').textContent = `Mundo ${mapWorld + 1}: ${w.name}`;
+  $('#w-stars').textContent = `⭐ ${got}/${(to - from) * 3}`;
+  let html = '<svg class="path"></svg>';
+  for (let i = from; i < to; i++) {
+    const k = i - from, row = Math.floor(k / 3), c = k % 3, col = row % 2 ? 2 - c : c; // caminho em serpentina
+    const st = prog[i] || 0, locked = !isUnlocked(i);
+    const stars = locked ? '' : [0, 1, 2].map(j => `<span class="${j < st ? '' : 'e'}">⭐</span>`).join('');
+    html += `<button class="node ${locked ? 'locked' : ''} ${i === cur ? 'current' : ''}" data-fase="${i}" style="grid-row:${row + 1};grid-column:${col + 1}"><span class="ball">${locked ? '🔒' : i + 1}</span><span class="stars">${stars}</span></button>`;
   }
-  $('#map').innerHTML = html;
+  $('#nodes').innerHTML = html;
+  $('#w-prev').disabled = mapWorld === 0;
+  $('#w-next').disabled = mapWorld === nW - 1;
+  $('#w-dots').innerHTML = Array.from({ length: nW }, (_, i) => `<i class="${i === mapWorld ? 'on' : ''}"></i>`).join('');
   $('#map-stars').textContent = `⭐ ${totalStars()}/${FASES.length * 3}`;
-  requestAnimationFrame(() => { const c = $('#map .node.current'); if (c) c.scrollIntoView({ block: 'center' }); });
+  requestAnimationFrame(() => requestAnimationFrame(drawMapPath));
 }
-$('#map').addEventListener('click', (e) => {
+// linha pontilhada ligando as fases, na ordem
+function drawMapPath() {
+  const box = $('#nodes'), svg = box.querySelector('svg.path'); if (!svg) return;
+  const pts = [...box.querySelectorAll('.node .ball')].map(b => {
+    const n = b.parentElement;
+    return [n.offsetLeft + b.offsetLeft + b.offsetWidth / 2, n.offsetTop + b.offsetTop + b.offsetHeight / 2];
+  });
+  svg.setAttribute('viewBox', `0 0 ${box.clientWidth} ${box.clientHeight}`);
+  svg.innerHTML = `<polyline points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 12"/>`;
+}
+$('#w-prev').addEventListener('click', () => { mapWorld--; renderMap(); });
+$('#w-next').addEventListener('click', () => { mapWorld++; renderMap(); });
+$('#nodes').addEventListener('click', (e) => {
   const b = e.target.closest('.node'); if (!b) return;
   const i = +b.dataset.fase;
   if (!isUnlocked(i)) { haptic('bad'); toast('🔒 Passe a fase anterior primeiro'); return; }
   A.sfx.tap(); startGame('fase', i);
 });
-$('#btn-map').addEventListener('click', () => { A.sfx.tap(); show('s-map'); renderMap(); });
+$('#btn-map').addEventListener('click', () => { A.sfx.tap(); mapWorld = null; show('s-map'); renderMap(); });
 
 function pickDaily() {
   return shuffle(NAMES, rng(hash('reverso-' + todayKey()))).slice(0, DAILY_ROUNDS);
@@ -303,10 +347,9 @@ async function loadRound() {
   $$('#dots i').forEach((d, i) => d.classList.toggle('cur', i === G.idx));
   $('#cat-chip').textContent = CATS[item.c];
   $('#guess').value = ''; $('#guess').classList.remove('shake', 'warm');
-  $('#hint-text').textContent = '';
+  $('#hint-text').textContent = ''; $('#hint-text').classList.add('hidden');
   $('#btn-hint').disabled = false;
-  $('#plays-note').textContent = 'toque para ouvir';
-  $('#rec-hint').textContent = 'Toque no microfone e repita o som estranho';
+  $('#rec-hint').textContent = 'Toque no microfone e repita o som';
   $('#me-controls').classList.add('hidden');
   $('#play-rev').classList.add('pulse');
   renderWorth(); renderTries();
@@ -328,7 +371,6 @@ async function playRev() {
   const btn = $('#play-rev');
   btn.classList.remove('pulse'); btn.classList.add('playing'); btn.firstElementChild.textContent = '■';
   r.plays++;
-  $('#plays-note').textContent = `ouviu ${r.plays}x`;
   await A.play(r.rev, { rate: G.slow ? 0.72 : 1, onProgress: p => A.drawWave($('#wave-rev'), r.revPk, p) });
   btn.classList.remove('playing'); btn.firstElementChild.textContent = '▶';
 }
@@ -392,13 +434,13 @@ $('#btn-hint').addEventListener('click', () => {
   if (r.hint >= 2) { A.play(A.head(r.orig, 0.42)); return; }
   r.hint++;
   if (r.hint === 1) {
-    if (G.diff === 'hard') $('#hint-text').textContent = maskName(r.item.n);
+    if (G.diff === 'hard') { $('#hint-text').textContent = maskName(r.item.n); $('#hint-text').classList.remove('hidden'); }
     else {
       const wrong = $$('#options .opt').filter(b => b.dataset.id !== r.item.id && !b.classList.contains('wrong'));
       if (wrong.length) shuffle(wrong)[0].classList.add('gone');
     }
     $('#hint-label').textContent = 'Ouvir o começo';
-    toast(G.diff === 'hard' ? '💡 Olha as iniciais aí embaixo' : '💡 Tirei uma opção errada');
+    toast(G.diff === 'hard' ? '💡 Olha as iniciais acima do campo' : '💡 Tirei uma opção errada');
   } else {
     $('#hint-label').textContent = 'Começo de novo';
     $('#btn-hint').querySelector('small').textContent = '';
@@ -648,11 +690,11 @@ async function loadBoard() {
       if (!pl) return `<div class="pod p${i + 1} empty"></div>`;
       return `<div class="pod p${i + 1} ${pl.me ? 'me' : ''}"><span class="medal">${['🥇', '🥈', '🥉'][i]}</span><span class="pn">${esc(pl.name)}</span><span class="ps">${pl.score} pts</span><div class="block">${i + 1}</div></div>`;
     }).join('');
-    $('#rank-list').innerHTML = top.slice(3).map((pl, i) =>
+    $('#rank-list').innerHTML = top.slice(3, 10).map((pl, i) =>
       `<li class="${pl.me ? 'me' : ''}"><span class="pos">${i + 4}º</span><span class="nm">${esc(pl.name)}</span><span class="sc">${pl.score}</span></li>`).join('');
   }
   if (!Rank.getName()) $('#rank-me').innerHTML = 'Você ainda não está no ranking · <button id="rank-join">Entrar agora</button>';
-  else if (data.me && !top.some(pl => pl.me)) $('#rank-me').textContent = `Você: ${data.me.rank}º lugar com ${data.me.score} pts`;
+  else if (data.me && !top.slice(0, 10).some(pl => pl.me)) $('#rank-me').textContent = `Você: ${data.me.rank}º lugar com ${data.me.score} pts`;
   else if (!data.me) $('#rank-me').textContent = board === 'day' ? 'Jogue o Desafio do Dia pra aparecer aqui! 📅' : 'Jogue uma partida pra aparecer aqui! 🎮';
 }
 $('#rank-tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; A.sfx.tap(); board = b.dataset.board; loadBoard(); });

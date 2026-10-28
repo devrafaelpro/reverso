@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, interactive-widget=resizes-content">
   <title>Reverso — adivinhe o nome ao contrário</title>
   <meta name="description" content="Ouça o nome de um famoso ao contrário, grave você imitando e descubra quem é. Fases, ranking e desafio do dia.">
   <meta name="theme-color" content="#100d24">
@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=3">
+  <link rel="stylesheet" href="/css/style.css?v=4">
 </head>
 <body>
   <div class="bg" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
@@ -29,7 +29,7 @@
   <main id="app">
 
     <!-- ============ HOME ============ -->
-    <section class="screen active" id="s-home">
+    <section class="screen active" id="s-home"><div class="fit">
       <header class="topbar">
         <button class="icon-btn" data-open="howto" aria-label="Como jogar">?</button>
         <div class="top-chips">
@@ -65,34 +65,37 @@
         <button class="tile b3d b-orange" id="btn-party"><span class="t-emo">🎉</span><b>Modo Festa</b><small>passe o celular</small></button>
       </div>
 
-      <div class="panel">
-        <div class="panel-label">Dificuldade</div>
-        <div class="seg" id="diff">
-          <button data-diff="easy"><span>😊 Fácil</span><small>escolher entre 4</small></button>
-          <button data-diff="hard"><span>😈 Difícil</span><small>digitar · pontos x2</small></button>
-        </div>
-        <div class="panel-label">Categorias <small>(modo Jogar)</small></div>
-        <div class="cats" id="cats"></div>
+      <div class="seg" id="diff">
+        <button data-diff="easy"><span>😊 Fácil</span><small>escolher entre 4</small></button>
+        <button data-diff="hard"><span>😈 Difícil</span><small>digitar · pontos x2</small></button>
       </div>
 
       <footer class="home-foot">
-        <button class="link" data-open="stats">📊 Estatísticas</button>
-        <button class="link hidden" id="btn-install">📲 Instalar app</button>
+        <button class="link" data-open="cats">🎯 <span id="cats-sum">Categorias: todas</span></button>
+        <button class="link hidden" id="btn-install">📲 Instalar</button>
       </footer>
-    </section>
+    </div></section>
 
     <!-- ============ MAPA DE FASES ============ -->
-    <section class="screen" id="s-map">
+    <section class="screen" id="s-map"><div class="fit">
       <header class="topbar">
         <button class="icon-btn" data-home aria-label="Voltar">←</button>
         <div class="bar-title">Fases</div>
         <span class="tchip t-star" id="map-stars">⭐ 0/90</span>
       </header>
-      <div class="map" id="map"></div>
-    </section>
+      <div class="world" id="world">
+        <div class="world-head">
+          <button class="w-arrow" id="w-prev" aria-label="Mundo anterior">‹</button>
+          <div class="w-mid"><span class="w-emo" id="w-emo">🌱</span><div><b id="w-name">Mundo 1</b><small id="w-stars">⭐ 0/30</small></div></div>
+          <button class="w-arrow" id="w-next" aria-label="Próximo mundo">›</button>
+        </div>
+        <div class="nodes" id="nodes"></div>
+        <div class="w-dots" id="w-dots"></div>
+      </div>
+    </div></section>
 
     <!-- ============ RANKING ============ -->
-    <section class="screen" id="s-rank">
+    <section class="screen" id="s-rank"><div class="fit">
       <header class="topbar">
         <button class="icon-btn" data-home aria-label="Voltar">←</button>
         <div class="bar-title">🏆 Ranking</div>
@@ -107,10 +110,10 @@
       <div class="podium" id="podium"></div>
       <ol class="rank-list" id="rank-list"></ol>
       <div class="rank-me" id="rank-me"></div>
-    </section>
+    </div></section>
 
     <!-- ============ GAME ============ -->
-    <section class="screen" id="s-game">
+    <section class="screen" id="s-game"><div class="fit">
       <header class="game-top">
         <button class="icon-btn" id="btn-quit" aria-label="Sair">✕</button>
         <div class="dots" id="dots"></div>
@@ -122,22 +125,24 @@
         <span class="chip" id="cat-chip">🎤 Música</span>
         <span class="chip chip-worth" id="worth">Vale 10 pts</span>
         <span class="chip chip-streak hidden" id="streak">🔥 2</span>
+        <span class="tries" id="tries"></span>
       </div>
 
       <div class="card card-listen">
-        <div class="step-head"><span class="step-n">1</span><span>Ouça o nome <b>ao contrário</b></span></div>
+        <div class="step-head"><span class="step-n">1</span><span class="sh-txt">Ouça <b>ao contrário</b></span>
+          <button class="mini" id="btn-slow">🐢 Devagar</button></div>
         <div class="player">
           <button class="play-btn" id="play-rev" aria-label="Tocar ao contrário"><span>▶</span></button>
           <canvas class="wave" id="wave-rev"></canvas>
         </div>
-        <div class="mini-row">
-          <button class="mini" id="btn-slow">🐢 Devagar</button>
-          <span class="mini-note" id="plays-note">toque para ouvir</span>
-        </div>
       </div>
 
       <div class="card card-rec">
-        <div class="step-head"><span class="step-n">2</span><span>Imite o som e <b>desvire</b></span></div>
+        <div class="step-head"><span class="step-n">2</span><span class="sh-txt">Imite e <b>desvire</b></span>
+          <span class="me-ctrl hidden" id="me-controls">
+            <button class="mini mini-green" id="play-me" aria-label="Ouvir desvirado">🔁 Desvirado</button>
+            <button class="mini" id="play-me-raw" aria-label="Minha gravação">🙃</button>
+          </span></div>
         <div class="rec-zone">
           <button class="rec-btn" id="rec-btn" aria-label="Gravar">
             <svg viewBox="0 0 24 24" class="mic"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
@@ -146,54 +151,46 @@
           </button>
           <div class="rec-side">
             <canvas class="wave" id="wave-me"></canvas>
-            <div class="rec-hint" id="rec-hint">Toque no microfone e repita o som estranho</div>
+            <div class="rec-hint" id="rec-hint">Toque no microfone e repita o som</div>
           </div>
-        </div>
-        <div class="mini-row hidden" id="me-controls">
-          <button class="mini mini-green" id="play-me">🔁 Ouvir desvirado</button>
-          <button class="mini" id="play-me-raw">🙃 Minha gravação</button>
         </div>
       </div>
 
+      <div class="hint-text hidden" id="hint-text"></div>
       <form class="guess" id="guess-form" autocomplete="off">
         <input id="guess" type="text" placeholder="Quem é? Digite o nome..." enterkeyhint="send" autocapitalize="words" spellcheck="false">
         <button type="submit" class="btn-guess" aria-label="Chutar">➜</button>
       </form>
       <div class="options hidden" id="options"></div>
-      <div class="guess-meta">
-        <div class="tries" id="tries"></div>
-        <div class="hint-text" id="hint-text"></div>
-      </div>
 
       <div class="game-actions">
         <button class="btn-ghost" id="btn-hint">💡 <span id="hint-label">Dica</span> <small>−3</small></button>
         <button class="btn-ghost" id="btn-skip">🏳️ Desisto</button>
       </div>
-    </section>
+    </div></section>
 
     <!-- ============ RESULTS ============ -->
-    <section class="screen" id="s-results">
-      <div class="res-wrap">
-        <div class="res-kicker" id="res-kicker">FIM DE JOGO</div>
-        <div class="res-stars" id="res-stars"></div>
-        <div class="res-score"><span id="res-score">0</span><small>pontos</small></div>
-        <div class="res-msg" id="res-msg"></div>
-        <div class="res-grid" id="res-grid"></div>
-        <div class="res-legend">🟢 só no reverso · 🟡 gravando · 🟠 com dica · ❌ errou</div>
-        <div class="res-xp" id="res-xp"></div>
+    <section class="screen" id="s-results"><div class="fit res-wrap">
+      <div class="res-kicker" id="res-kicker">FIM DE JOGO</div>
+      <div class="res-stars" id="res-stars"></div>
+      <div class="res-score"><span id="res-score">0</span><small>pontos</small></div>
+      <div class="res-msg" id="res-msg"></div>
+      <div class="res-grid" id="res-grid"></div>
+      <div class="res-xp" id="res-xp"></div>
+      <div class="res-btns">
         <button class="b3d b-yellow btn-wide hidden" id="btn-join-rank">🏆 Colocar meu nome no ranking</button>
         <button class="b3d b-green btn-wide hidden" id="btn-next-fase">➜ Próxima fase</button>
         <button class="b3d b-pink btn-wide" id="btn-share">📤 Desafiar amigos</button>
-        <div class="row2">
+        <div class="row3">
           <button class="b3d b-dark" id="btn-again">🔄 De novo</button>
+          <button class="b3d b-dark" data-open="names">🔊 Nomes</button>
           <button class="b3d b-dark" id="btn-home">🏠 Início</button>
         </div>
-        <ul class="res-list" id="res-list"></ul>
       </div>
-    </section>
+    </div></section>
 
     <!-- ============ PARTY ============ -->
-    <section class="screen" id="s-party">
+    <section class="screen" id="s-party"><div class="fit">
       <header class="game-top">
         <button class="icon-btn" id="party-quit" aria-label="Sair">✕</button>
         <div class="bar-title">🎉 Modo Festa</div>
@@ -220,14 +217,15 @@
       <div class="party-step hidden" id="p2">
         <div class="party-who">👂 Vez de quem <b>ADIVINHA</b></div>
         <div class="card card-listen">
-          <div class="step-head"><span class="step-n">1</span><span>Ouça ao contrário</span></div>
+          <div class="step-head"><span class="step-n">1</span><span class="sh-txt">Ouça ao contrário</span></div>
           <div class="player">
             <button class="play-btn" id="p2-play"><span>▶</span></button>
             <canvas class="wave" id="p2-wave"></canvas>
           </div>
         </div>
         <div class="card card-rec">
-          <div class="step-head"><span class="step-n">2</span><span>Imite e desvire</span></div>
+          <div class="step-head"><span class="step-n">2</span><span class="sh-txt">Imite e desvire</span>
+            <span class="me-ctrl hidden" id="p2-me-controls"><button class="mini mini-green" id="p2-play-me">🔁 Desvirado</button></span></div>
           <div class="rec-zone">
             <button class="rec-btn" id="p2-rec" aria-label="Gravar">
               <svg viewBox="0 0 24 24" class="mic"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
@@ -238,9 +236,6 @@
               <canvas class="wave" id="p2-me-wave"></canvas>
               <div class="rec-hint" id="p2-hint">Grave imitando o som</div>
             </div>
-          </div>
-          <div class="mini-row hidden" id="p2-me-controls">
-            <button class="mini mini-green" id="p2-play-me">🔁 Ouvir desvirado</button>
           </div>
         </div>
         <button class="b3d b-pink btn-wide" id="p2-reveal">👀 Revelar</button>
@@ -256,7 +251,7 @@
         </div>
         <div class="party-tally" id="party-tally"></div>
       </div>
-    </section>
+    </div></section>
   </main>
 
   <!-- ============ REVEAL SHEET ============ -->
@@ -280,15 +275,33 @@
       <button class="modal-x" data-close>✕</button>
       <h2>Como jogar</h2>
       <ol class="how">
-        <li><span class="h-cyan">🔁</span><div><b>Ouça ao contrário.</b> O nome de um famoso toca de trás pra frente. Já sacou? Acerta e leva <b>10 pts</b>.</div></li>
-        <li><span class="h-pink">🎙️</span><div><b>Imite o som.</b> Grave você repetindo exatamente o que ouviu, por mais estranho que seja.</div></li>
-        <li><span class="h-green">🙃</span><div><b>Desvire.</b> O jogo inverte sua gravação e... o nome aparece! Acertando assim vale <b>6 pts</b>.</div></li>
-        <li><span class="h-yellow">💡</span><div><b>Dicas</b> (−3 cada): a 1ª tira uma opção errada (ou mostra as iniciais), a 2ª toca o <b>começo do nome</b>.</div></li>
+        <li><span class="h-cyan">🔁</span><div><b>Ouça ao contrário.</b> Já sacou quem é? Acerta e leva <b>10 pts</b>.</div></li>
+        <li><span class="h-pink">🎙️</span><div><b>Imite o som</b> e o jogo <b>desvira</b> sua gravação: o nome aparece! Vale <b>6 pts</b>.</div></li>
+        <li><span class="h-yellow">💡</span><div><b>Dicas</b> (−3 cada): tira uma opção errada, depois toca o <b>começo do nome</b>.</div></li>
         <li><span class="h-orange">🗺️</span><div><b>Fases:</b> acerte 3 de 5 pra passar. 5 de 5 = ⭐⭐⭐.</div></li>
-        <li><span class="h-purple">😈</span><div><b>Difícil:</b> você digita o nome e os pontos valem <b>dobrado</b>.</div></li>
+        <li><span class="h-purple">😈</span><div><b>Difícil:</b> digite o nome, pontos em <b>dobro</b>.</div></li>
       </ol>
-      <p class="how-tip">💡 Imite o ritmo e as sílabas como se fosse outra língua. Use o 🐢 <b>Devagar</b> pra decorar antes de gravar!</p>
+      <p class="how-tip">💡 Imite o ritmo e as sílabas como se fosse outra língua. Use o 🐢 <b>Devagar</b>!</p>
       <button class="b3d b-pink btn-wide" data-close>👍 Bora!</button>
+    </div>
+  </div>
+
+  <div class="modal" id="m-cats">
+    <div class="modal-box">
+      <button class="modal-x" data-close>✕</button>
+      <h2>🎯 Categorias</h2>
+      <p class="modal-p">Escolha os temas do modo Jogar.</p>
+      <div class="cats" id="cats"></div>
+      <button class="b3d b-green btn-wide" data-close style="margin-top:16px">Pronto</button>
+    </div>
+  </div>
+
+  <div class="modal" id="m-names">
+    <div class="modal-box">
+      <button class="modal-x" data-close>✕</button>
+      <h2>🔊 Os nomes</h2>
+      <ul class="res-list" id="res-list"></ul>
+      <div class="res-legend">🟢 só no reverso · 🟡 gravando · 🟠 com dica · ❌ errou</div>
     </div>
   </div>
 
@@ -329,6 +342,6 @@
 
   <div class="toast" id="toast"></div>
 
-  <script type="module" src="/js/app.js?v=3"></script>
+  <script type="module" src="/js/app.js?v=4"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // Service worker: app abre offline e os áudios ficam em cache depois de tocados.
-const VERSION = 'reverso-v2';
-const SHELL = ['/', '/index.html', '/css/style.css', '/js/app.js', '/js/audio.js', '/js/match.js', '/js/names.js',
+const VERSION = 'reverso-v3';
+const SHELL = ['/', '/index.html', '/css/style.css', '/js/app.js', '/js/audio.js', '/js/match.js', '/js/names.js', '/js/haptics.js', '/js/rank.js',
   '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -14,6 +14,7 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  if (url.pathname.startsWith('/api/')) return; // ranking sempre ao vivo
   // Áudios e fontes: cache primeiro. Código: rede primeiro (pega atualização), cache se offline.
   const cacheFirst = url.pathname.startsWith('/audio/') || url.hostname.includes('fonts.g');
   if (cacheFirst) {

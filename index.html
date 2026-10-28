@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>Reverso — adivinhe o nome ao contrário</title>
-  <meta name="description" content="Ouça o nome de um famoso ao contrário, grave você imitando e descubra quem é. O desafio do áudio invertido que viralizou, agora como jogo.">
-  <meta name="theme-color" content="#120a24">
+  <meta name="description" content="Ouça o nome de um famoso ao contrário, grave você imitando e descubra quem é. Fases, ranking e desafio do dia.">
+  <meta name="theme-color" content="#100d24">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -19,58 +19,59 @@
   <link rel="apple-touch-icon" href="/icons/icon-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Bungee&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Lilita+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css?v=3">
 </head>
 <body>
-  <div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="bg" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
   <canvas id="confetti" aria-hidden="true"></canvas>
 
   <main id="app">
 
     <!-- ============ HOME ============ -->
     <section class="screen active" id="s-home">
-      <header class="home-top">
+      <header class="topbar">
         <button class="icon-btn" data-open="howto" aria-label="Como jogar">?</button>
+        <div class="top-chips">
+          <span class="tchip t-fire" id="chip-days" title="Dias seguidos no desafio">🔥 0</span>
+          <span class="tchip t-star" id="chip-stars" title="Estrelas nas fases">⭐ 0</span>
+        </div>
+        <button class="icon-btn" id="btn-vib" aria-label="Vibração">📳</button>
         <button class="icon-btn" id="btn-sound" aria-label="Som">🔊</button>
       </header>
 
       <div class="logo" id="logo" aria-label="Reverso"></div>
-      <p class="tagline">Ouça ao contrário. Imite. Desvire. <b>Acerte.</b></p>
+      <p class="tagline">Ouça ao contrário · Imite · <b>Desvire!</b></p>
 
-      <div class="level-card" data-open="stats">
-        <div class="lvl-badge"><span id="lvl-num">1</span></div>
+      <div class="profile" data-open="stats">
+        <div class="lvl-badge"><small>NÍVEL</small><span id="lvl-num">1</span></div>
         <div class="lvl-info">
+          <div class="lvl-name"><span id="player-name">Jogador</span> <button class="edit" id="btn-edit-name" aria-label="Mudar nome">✏️</button></div>
           <div class="lvl-title" id="lvl-title">Ouvido de Lata</div>
           <div class="bar"><i id="lvl-bar"></i></div>
-          <div class="lvl-xp" id="lvl-xp">0 / 50 XP</div>
+          <div class="lvl-xp" id="lvl-xp">0 / 60 XP</div>
         </div>
-        <div class="lvl-arrow">›</div>
       </div>
 
-      <button class="btn btn-play" id="btn-play">
-        <span class="btn-ico">▶</span>
-        <span><b>JOGAR</b><small>10 famosos ao contrário</small></span>
+      <button class="b3d b-pink btn-play" id="btn-play">
+        <span class="bp-ico">▶</span>
+        <span class="bp-txt"><b>JOGAR</b><small>10 famosos ao contrário</small></span>
       </button>
 
-      <div class="seg" id="diff">
-        <button data-diff="easy">😊 Fácil <small>escolher entre 4</small></button>
-        <button data-diff="hard">😈 Difícil <small>digitar · pontos x2</small></button>
+      <div class="tiles">
+        <button class="tile b3d b-green" id="btn-map"><span class="t-emo">🗺️</span><b>Fases</b><small id="map-sub">Fase 1</small></button>
+        <button class="tile b3d b-blue" id="btn-daily"><span class="t-emo">📅</span><b>Desafio do Dia</b><small id="daily-sub">5 nomes</small></button>
+        <button class="tile b3d b-yellow" id="btn-rank"><span class="t-emo">🏆</span><b>Ranking</b><small>quem ouve melhor?</small></button>
+        <button class="tile b3d b-orange" id="btn-party"><span class="t-emo">🎉</span><b>Modo Festa</b><small>passe o celular</small></button>
       </div>
 
-      <div class="row2">
-        <button class="btn btn-daily" id="btn-daily">
-          <span class="btn-ico">📅</span>
-          <span><b>Desafio do Dia</b><small id="daily-sub">5 nomes · igual pra todo mundo</small></span>
-        </button>
-        <button class="btn btn-party" id="btn-party">
-          <span class="btn-ico">🎉</span>
-          <span><b>Modo Festa</b><small>grave e passe o celular</small></span>
-        </button>
-      </div>
-
-      <div class="cats-wrap">
-        <div class="cats-label">Categorias</div>
+      <div class="panel">
+        <div class="panel-label">Dificuldade</div>
+        <div class="seg" id="diff">
+          <button data-diff="easy"><span>😊 Fácil</span><small>escolher entre 4</small></button>
+          <button data-diff="hard"><span>😈 Difícil</span><small>digitar · pontos x2</small></button>
+        </div>
+        <div class="panel-label">Categorias <small>(modo Jogar)</small></div>
         <div class="cats" id="cats"></div>
       </div>
 
@@ -78,6 +79,34 @@
         <button class="link" data-open="stats">📊 Estatísticas</button>
         <button class="link hidden" id="btn-install">📲 Instalar app</button>
       </footer>
+    </section>
+
+    <!-- ============ MAPA DE FASES ============ -->
+    <section class="screen" id="s-map">
+      <header class="topbar">
+        <button class="icon-btn" data-home aria-label="Voltar">←</button>
+        <div class="bar-title">Fases</div>
+        <span class="tchip t-star" id="map-stars">⭐ 0/90</span>
+      </header>
+      <div class="map" id="map"></div>
+    </section>
+
+    <!-- ============ RANKING ============ -->
+    <section class="screen" id="s-rank">
+      <header class="topbar">
+        <button class="icon-btn" data-home aria-label="Voltar">←</button>
+        <div class="bar-title">🏆 Ranking</div>
+        <button class="icon-btn" id="rank-refresh" aria-label="Atualizar">↻</button>
+      </header>
+      <div class="tabs" id="rank-tabs">
+        <button data-board="day">Hoje</button>
+        <button data-board="week" class="on">Semana</button>
+        <button data-board="all">Geral</button>
+      </div>
+      <p class="rank-desc" id="rank-desc"></p>
+      <div class="podium" id="podium"></div>
+      <ol class="rank-list" id="rank-list"></ol>
+      <div class="rank-me" id="rank-me"></div>
     </section>
 
     <!-- ============ GAME ============ -->
@@ -89,12 +118,13 @@
       </header>
 
       <div class="round-info">
+        <span class="chip chip-mode" id="mode-chip">Fase 1</span>
         <span class="chip" id="cat-chip">🎤 Música</span>
         <span class="chip chip-worth" id="worth">Vale 10 pts</span>
         <span class="chip chip-streak hidden" id="streak">🔥 2</span>
       </div>
 
-      <div class="card step" id="step1">
+      <div class="card card-listen">
         <div class="step-head"><span class="step-n">1</span><span>Ouça o nome <b>ao contrário</b></span></div>
         <div class="player">
           <button class="play-btn" id="play-rev" aria-label="Tocar ao contrário"><span>▶</span></button>
@@ -106,8 +136,8 @@
         </div>
       </div>
 
-      <div class="card step" id="step2">
-        <div class="step-head"><span class="step-n">2</span><span>Imite o que ouviu e <b>desvire</b></span></div>
+      <div class="card card-rec">
+        <div class="step-head"><span class="step-n">2</span><span>Imite o som e <b>desvire</b></span></div>
         <div class="rec-zone">
           <button class="rec-btn" id="rec-btn" aria-label="Gravar">
             <svg viewBox="0 0 24 24" class="mic"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
@@ -120,7 +150,7 @@
           </div>
         </div>
         <div class="mini-row hidden" id="me-controls">
-          <button class="mini" id="play-me">🔁 Ouvir desvirado</button>
+          <button class="mini mini-green" id="play-me">🔁 Ouvir desvirado</button>
           <button class="mini" id="play-me-raw">🙃 Minha gravação</button>
         </div>
       </div>
@@ -145,16 +175,18 @@
     <section class="screen" id="s-results">
       <div class="res-wrap">
         <div class="res-kicker" id="res-kicker">FIM DE JOGO</div>
-        <div class="res-score"><span id="res-score">0</span><small>pontos</small></div>
         <div class="res-stars" id="res-stars"></div>
+        <div class="res-score"><span id="res-score">0</span><small>pontos</small></div>
         <div class="res-msg" id="res-msg"></div>
         <div class="res-grid" id="res-grid"></div>
         <div class="res-legend">🟢 só no reverso · 🟡 gravando · 🟠 com dica · ❌ errou</div>
         <div class="res-xp" id="res-xp"></div>
-        <button class="btn btn-play" id="btn-share"><span class="btn-ico">📤</span><span><b>Desafiar amigos</b><small>compartilhe seu resultado</small></span></button>
+        <button class="b3d b-yellow btn-wide hidden" id="btn-join-rank">🏆 Colocar meu nome no ranking</button>
+        <button class="b3d b-green btn-wide hidden" id="btn-next-fase">➜ Próxima fase</button>
+        <button class="b3d b-pink btn-wide" id="btn-share">📤 Desafiar amigos</button>
         <div class="row2">
-          <button class="btn btn-sec" id="btn-again">🔄 Jogar de novo</button>
-          <button class="btn btn-sec" id="btn-home">🏠 Início</button>
+          <button class="b3d b-dark" id="btn-again">🔄 De novo</button>
+          <button class="b3d b-dark" id="btn-home">🏠 Início</button>
         </div>
         <ul class="res-list" id="res-list"></ul>
       </div>
@@ -164,8 +196,8 @@
     <section class="screen" id="s-party">
       <header class="game-top">
         <button class="icon-btn" id="party-quit" aria-label="Sair">✕</button>
-        <div class="party-title">🎉 Modo Festa</div>
-        <div class="score-pill"><span id="party-round">1</span><small>rod.</small></div>
+        <div class="bar-title">🎉 Modo Festa</div>
+        <div class="score-pill s-orange"><span id="party-round">1</span><small>rod.</small></div>
       </header>
 
       <div class="party-step" id="p1">
@@ -181,20 +213,20 @@
         <div class="rec-hint center" id="p1-hint">Toque para gravar</div>
         <div class="party-actions hidden" id="p1-done">
           <button class="mini" id="p1-listen">🔁 Ouvir ao contrário</button>
-          <button class="btn btn-play" id="p1-next"><span class="btn-ico">📱</span><span><b>Passar o celular</b><small>agora é a vez de quem adivinha</small></span></button>
+          <button class="b3d b-orange btn-wide" id="p1-next">📱 Passar o celular</button>
         </div>
       </div>
 
       <div class="party-step hidden" id="p2">
         <div class="party-who">👂 Vez de quem <b>ADIVINHA</b></div>
-        <div class="card">
+        <div class="card card-listen">
           <div class="step-head"><span class="step-n">1</span><span>Ouça ao contrário</span></div>
           <div class="player">
             <button class="play-btn" id="p2-play"><span>▶</span></button>
             <canvas class="wave" id="p2-wave"></canvas>
           </div>
         </div>
-        <div class="card">
+        <div class="card card-rec">
           <div class="step-head"><span class="step-n">2</span><span>Imite e desvire</span></div>
           <div class="rec-zone">
             <button class="rec-btn" id="p2-rec" aria-label="Gravar">
@@ -208,10 +240,10 @@
             </div>
           </div>
           <div class="mini-row hidden" id="p2-me-controls">
-            <button class="mini" id="p2-play-me">🔁 Ouvir desvirado</button>
+            <button class="mini mini-green" id="p2-play-me">🔁 Ouvir desvirado</button>
           </div>
         </div>
-        <button class="btn btn-play" id="p2-reveal"><span class="btn-ico">👀</span><span><b>Revelar</b><small>ouvir o original</small></span></button>
+        <button class="b3d b-pink btn-wide" id="p2-reveal">👀 Revelar</button>
       </div>
 
       <div class="party-step hidden" id="p3">
@@ -219,8 +251,8 @@
         <div class="reveal-name" id="p3-name">???</div>
         <button class="mini" id="p3-replay">🔊 Ouvir original de novo</button>
         <div class="party-judge">
-          <button class="btn btn-ok" id="p3-ok">✅ Acertou</button>
-          <button class="btn btn-no" id="p3-no">❌ Errou</button>
+          <button class="b3d b-green" id="p3-ok">✅ Acertou</button>
+          <button class="b3d b-red" id="p3-no">❌ Errou</button>
         </div>
         <div class="party-tally" id="party-tally"></div>
       </div>
@@ -238,7 +270,7 @@
         <button class="mini" id="rv-orig">🔊 Original</button>
         <button class="mini" id="rv-rev">🔁 Ao contrário</button>
       </div>
-      <button class="btn btn-play" id="rv-next"><span class="btn-ico">➜</span><span><b id="rv-next-label">Próximo</b></span></button>
+      <button class="b3d b-pink btn-wide" id="rv-next"><b id="rv-next-label">Próximo</b> ➜</button>
     </div>
   </div>
 
@@ -248,15 +280,15 @@
       <button class="modal-x" data-close>✕</button>
       <h2>Como jogar</h2>
       <ol class="how">
-        <li><span>🔁</span><div><b>Ouça ao contrário.</b> O nome de um famoso toca de trás pra frente. Já sacou? Chuta e leva <b>10 pts</b>.</div></li>
-        <li><span>🎙️</span><div><b>Imite o som.</b> Grave você repetindo exatamente o que ouviu, por mais estranho que seja.</div></li>
-        <li><span>🙃</span><div><b>Desvire.</b> O jogo inverte sua gravação e... surpresa! O nome aparece. Acertando assim vale <b>6 pts</b>.</div></li>
-        <li><span>💡</span><div><b>Dicas</b> (−3 cada): a 1ª elimina opções ou mostra as iniciais; a 2ª toca o <b>começo do nome</b> normal.</div></li>
-        <li><span>😈</span><div><b>Modo Difícil:</b> você digita o nome e os pontos valem <b>dobrado</b>.</div></li>
-        <li><span>🔥</span><div><b>Sequência:</b> acertos seguidos dão bônus de até <b>+5</b>.</div></li>
+        <li><span class="h-cyan">🔁</span><div><b>Ouça ao contrário.</b> O nome de um famoso toca de trás pra frente. Já sacou? Acerta e leva <b>10 pts</b>.</div></li>
+        <li><span class="h-pink">🎙️</span><div><b>Imite o som.</b> Grave você repetindo exatamente o que ouviu, por mais estranho que seja.</div></li>
+        <li><span class="h-green">🙃</span><div><b>Desvire.</b> O jogo inverte sua gravação e... o nome aparece! Acertando assim vale <b>6 pts</b>.</div></li>
+        <li><span class="h-yellow">💡</span><div><b>Dicas</b> (−3 cada): a 1ª tira uma opção errada (ou mostra as iniciais), a 2ª toca o <b>começo do nome</b>.</div></li>
+        <li><span class="h-orange">🗺️</span><div><b>Fases:</b> acerte 3 de 5 pra passar. 5 de 5 = ⭐⭐⭐.</div></li>
+        <li><span class="h-purple">😈</span><div><b>Difícil:</b> você digita o nome e os pontos valem <b>dobrado</b>.</div></li>
       </ol>
-      <p class="how-tip">Dica de ouro: imite o ritmo e as sílabas, não tente entender. Quanto mais fiel, melhor fica quando desvira! 😂</p>
-      <button class="btn btn-play" data-close><span class="btn-ico">👍</span><span><b>Bora!</b></span></button>
+      <p class="how-tip">💡 Imite o ritmo e as sílabas como se fosse outra língua. Use o 🐢 <b>Devagar</b> pra decorar antes de gravar!</p>
+      <button class="b3d b-pink btn-wide" data-close>👍 Bora!</button>
     </div>
   </div>
 
@@ -269,21 +301,34 @@
     </div>
   </div>
 
+  <div class="modal" id="m-name">
+    <div class="modal-box">
+      <button class="modal-x" data-close>✕</button>
+      <h2>🏆 Seu nome no ranking</h2>
+      <p class="modal-p">É assim que você vai aparecer pra todo mundo. Dá pra mudar depois.</p>
+      <form id="name-form" autocomplete="off">
+        <input id="name-input" class="name-input" type="text" maxlength="16" placeholder="Ex: Rafa do Reverso" autocapitalize="words" spellcheck="false">
+        <div class="name-err" id="name-err"></div>
+        <button class="b3d b-yellow btn-wide" type="submit" id="name-save">Entrar no ranking</button>
+      </form>
+    </div>
+  </div>
+
   <div class="modal" id="m-ios">
     <div class="modal-box">
       <button class="modal-x" data-close>✕</button>
       <h2>Instalar no iPhone</h2>
       <ol class="how">
-        <li><span>1</span><div>Toque em <b>Compartilhar</b> <span class="ios-share">⬆︎</span> na barra do Safari.</div></li>
-        <li><span>2</span><div>Escolha <b>Adicionar à Tela de Início</b>.</div></li>
-        <li><span>3</span><div>Pronto! O Reverso abre como um app. 🎉</div></li>
+        <li><span class="h-cyan">1</span><div>Toque em <b>Compartilhar</b> <span class="ios-share">⬆︎</span> na barra do Safari.</div></li>
+        <li><span class="h-pink">2</span><div>Escolha <b>Adicionar à Tela de Início</b>.</div></li>
+        <li><span class="h-green">3</span><div>Pronto! O Reverso abre como um app. 🎉</div></li>
       </ol>
-      <button class="btn btn-play" data-close><span class="btn-ico">👍</span><span><b>Entendi</b></span></button>
+      <button class="b3d b-pink btn-wide" data-close>👍 Entendi</button>
     </div>
   </div>
 
   <div class="toast" id="toast"></div>
 
-  <script type="module" src="/js/app.js"></script>
+  <script type="module" src="/js/app.js?v=3"></script>
 </body>
 </html>

@@ -1,12 +1,14 @@
 import { NAMES } from './names.js';
 import * as A from './audio.js';
 import { check, maskName } from './match.js';
+import { haptic, setHaptics } from './haptics.js';
+import * as Rank from './rank.js';
 
 // ============ utilidades ============
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-const vibrate = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch {} };
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SITE = location.origin;
 
 const store = {
@@ -127,6 +129,12 @@ let soundOn = store.get('sound', true);
 function renderSound() { $('#btn-sound').textContent = soundOn ? '🔊' : '🔇'; A.setSfx(soundOn); }
 $('#btn-sound').addEventListener('click', () => { soundOn = !soundOn; store.set('sound', soundOn); renderSound(); A.sfx.tap(); });
 
+// ============ vibração ============
+let vibOn = store.get('vib', true);
+function renderVib() { $('#btn-vib').classList.toggle('off', !vibOn); setHaptics(vibOn); }
+$('#btn-vib').addEventListener('click', () => { vibOn = !vibOn; store.set('vib', vibOn); renderVib(); if (vibOn) haptic('ok'); toast(vibOn ? '📳 Vibração ligada' : 'Vibração desligada'); });
+document.addEventListener('click', (e) => { if (e.target.closest('.b3d, .tile, .icon-btn, .node, .seg button, .tabs button, .cat')) haptic('tap'); }, true);
+
 // ============ gravação reutilizável ============
 const recorder = new A.Recorder();
 function recUI({ btn, canvas, hint, maxSec = 7, onDone }) {
@@ -157,7 +165,7 @@ function recUI({ btn, canvas, hint, maxSec = 7, onDone }) {
     try {
       levels = [];
       await recorder.start({ maxSec, onLevel: (v) => levels.push(Math.min(1, v * 6 + 0.04)), onAutoStop: finish });
-      vibrate(20); // sem bip aqui: ele seria gravado junto e sujaria o áudio desvirado
+      haptic('rec'); // sem bip aqui: ele seria gravado junto e sujaria o áudio desvirado
       btn.classList.add('rec');
       hint.textContent = 'Gravando... toque de novo para parar';
       draw();
@@ -180,11 +188,58 @@ function pickClassic() {
   if (fresh.length < ROUNDS) { store.set('seen', []); fresh = pool; }
   return shuffle(fresh).slice(0, ROUNDS);
 }
+// ============ FASES ============
+// 30 fases de 5 nomes, dos nomes mais curtos (fáceis) para os mais longos. Acerte 3 de 5 para passar.
+const FASE_SIZE = 5, PASS_HITS = 3, PER_WORLD = 10;
+const WORLDS = [
+  { name: 'Aquecimento', emo: '🌱', c: '#2ee59d', d: '#16a46c' },
+  { name: 'Ouvido Afiado', emo: '🎧', c: '#2ed3f0', d: '#1495b0' },
+  { name: 'Avesso Total', emo: '🌀', c: '#ff4f8b', d: '#c72a63' },
+  { name: 'Lendas', emo: '👑', c: '#ffd23f', d: '#c99b0c' },
+];
+const FASES = (() => {
+  const r = rng(hash('fases-v1'));
+  const sorted = NAMES.map(n => ({ n, k: n.n.replace(/[^\p{L}]/gu, '').length + r() * 5 })).sort((a, b) => a.k - b.k).map(x => x.n);
+  const out = [];
+  for (let i = 0; i + FASE_SIZE <= sorted.length; i += FASE_SIZE) out.push(sorted.slice(i, i + FASE_SIZE));
+  return out;
+})();
+const faseProg = () => store.get('fases', {});
+const totalStars = () => Object.values(faseProg()).reduce((a, b) => a + b, 0);
+function currentFase() { const p = faseProg(); let i = 0; while (i < FASES.length - 1 && p[i] > 0) i++; return i; }
+const isUnlocked = (i) => i === 0 || faseProg()[i - 1] > 0;
+
+function renderMap() {
+  const prog = faseProg(), cur = currentFase();
+  let html = '';
+  for (let wi = 0; wi * PER_WORLD < FASES.length; wi++) {
+    const w = WORLDS[wi % WORLDS.length], from = wi * PER_WORLD, to = Math.min(FASES.length, from + PER_WORLD);
+    let got = 0; for (let i = from; i < to; i++) got += prog[i] || 0;
+    html += `<div class="world" style="--wc:${w.c};--wd:${w.d}"><div class="world-head"><span class="w-emo">${w.emo}</span><div><b>Mundo ${wi + 1}: ${w.name}</b><small>⭐ ${got}/${(to - from) * 3}</small></div></div><div class="nodes">`;
+    for (let i = from; i < to; i++) {
+      const st = prog[i] || 0, locked = !isUnlocked(i), x = Math.round(Math.sin(i * 1.15) * 72);
+      const stars = locked ? '' : [0, 1, 2].map(k => `<span class="${k < st ? '' : 'e'}">⭐</span>`).join('');
+      html += `<div class="node-row" style="--x:${x}px"><button class="node ${locked ? 'locked' : ''} ${i === cur ? 'current' : ''}" data-fase="${i}"><span class="ball">${locked ? '🔒' : i + 1}</span><span class="stars">${stars}</span></button></div>`;
+    }
+    html += '</div></div>';
+  }
+  $('#map').innerHTML = html;
+  $('#map-stars').textContent = `⭐ ${totalStars()}/${FASES.length * 3}`;
+  requestAnimationFrame(() => { const c = $('#map .node.current'); if (c) c.scrollIntoView({ block: 'center' }); });
+}
+$('#map').addEventListener('click', (e) => {
+  const b = e.target.closest('.node'); if (!b) return;
+  const i = +b.dataset.fase;
+  if (!isUnlocked(i)) { haptic('bad'); toast('🔒 Passe a fase anterior primeiro'); return; }
+  A.sfx.tap(); startGame('fase', i);
+});
+$('#btn-map').addEventListener('click', () => { A.sfx.tap(); show('s-map'); renderMap(); });
+
 function pickDaily() {
   return shuffle(NAMES, rng(hash('reverso-' + todayKey()))).slice(0, DAILY_ROUNDS);
 }
 
-async function startGame(mode) {
+async function startGame(mode, faseIdx = 0) {
   A.unlock();
   if (mode === 'daily') {
     const d = store.get('daily', null);
@@ -192,7 +247,9 @@ async function startGame(mode) {
   }
   G.mode = mode;
   G.diff = diff;
-  G.items = mode === 'daily' ? pickDaily() : pickClassic();
+  G.fase = faseIdx;
+  G.items = mode === 'daily' ? pickDaily() : mode === 'fase' ? shuffle(FASES[faseIdx]) : pickClassic();
+  $('#mode-chip').textContent = mode === 'fase' ? `🗺️ Fase ${faseIdx + 1}` : mode === 'daily' ? `📅 Desafio #${dayNumber()}` : '▶ Partida';
   G.idx = 0; G.score = 0; G.streak = 0; G.results = [];
   $('#score').textContent = '0';
   $('#dots').innerHTML = G.items.map(() => '<i></i>').join('');
@@ -228,7 +285,7 @@ $('#options').addEventListener('click', (e) => {
   const b = e.target.closest('.opt'); const r = G.r; if (!b || !r || r.done) return;
   if (b.dataset.id === r.item.id) { b.classList.add('right'); return finishRound(true); }
   b.classList.add('wrong'); r.tries--; renderTries();
-  A.sfx.wrong(); vibrate([40, 40, 40]);
+  A.sfx.wrong(); haptic('bad');
   if (r.tries <= 0) return finishRound(false);
   toast(r.recorded ? 'Não é! Última chance 👀' : 'Não é! Tenta gravar e desvirar 🎙️');
 });
@@ -317,11 +374,11 @@ $('#guess-form').addEventListener('submit', (e) => {
   input.classList.remove('shake', 'warm'); void input.offsetWidth;
   if (res === 'yes') return finishRound(true);
   if (res === 'warm') {
-    input.classList.add('warm'); A.sfx.warm(); vibrate(30);
+    input.classList.add('warm'); A.sfx.warm(); haptic('warm');
     toast('🔥 Tá quente! Tenta o nome completo'); return;
   }
   r.tries--; renderTries();
-  input.classList.add('shake'); A.sfx.wrong(); vibrate([40, 40, 40]);
+  input.classList.add('shake'); A.sfx.wrong(); haptic('bad');
   if (r.tries <= 0) return finishRound(false);
   input.select();
   toast(r.recorded ? `Não é... ${r.tries} chute${r.tries > 1 ? 's' : ''} restante${r.tries > 1 ? 's' : ''}` : `Não é! Tenta gravar e desvirar 🎙️`);
@@ -353,7 +410,11 @@ $('#btn-skip').addEventListener('click', () => { if (!G.r.done) finishRound(fals
 
 let quitArmed = 0;
 $('#btn-quit').addEventListener('click', () => {
-  if (Date.now() - quitArmed < 2500) { A.stop(); if (recorder.active) recorder.stop(); show('s-home'); refreshHome(); return; }
+  if (Date.now() - quitArmed < 2500) {
+    A.stop(); if (recorder.active) recorder.stop();
+    if (G.mode === 'fase') { show('s-map'); renderMap(); } else { show('s-home'); refreshHome(); }
+    return;
+  }
   quitArmed = Date.now(); toast('Toque de novo no ✕ para sair');
 });
 
@@ -384,8 +445,9 @@ async function finishRound(ok) {
   pe.classList.toggle('zero', !ok);
   $('#rv-next-label').textContent = G.idx + 1 < G.items.length ? 'Próximo' : 'Ver resultado';
   $('#reveal').classList.add('show');
-  if (ok) { A.sfx.correct(); vibrate([30, 50, 30]); confetti(kind === 'g' ? 140 : 70); }
-  else { A.sfx.reveal(); vibrate(60); }
+  if (ok) { A.sfx.correct(); haptic('ok'); confetti(kind === 'g' ? 140 : 70); floatPts(pts); }
+  else { A.sfx.reveal(); haptic('bad'); }
+  $('.sheet').classList.toggle('ok', ok); $('.sheet').classList.toggle('bad', !ok);
   await sleep(ok ? 650 : 450);
   if (r.orig && $('#reveal').classList.contains('show')) A.play(r.orig);
 }
@@ -398,13 +460,28 @@ $('#rv-next').addEventListener('click', () => {
   if (G.idx < G.items.length) loadRound(); else endGame();
 });
 
+function floatPts(pts) {
+  const r = $('.score-pill').getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'float-pts'; el.textContent = '+' + pts;
+  el.style.left = (r.left + r.width / 2) + 'px'; el.style.top = (r.bottom + 6) + 'px';
+  document.body.appendChild(el); setTimeout(() => el.remove(), 1200);
+}
+
 // ============ RESULTADO ============
 const EMO = { g: '🟢', y: '🟡', o: '🟠', x: '❌' };
 function endGame() {
   const max = G.items.length * PTS_REVERSE;
   const pct = G.score / max;
-  const stars = pct >= 0.8 ? 3 : pct >= 0.5 ? 2 : pct >= 0.2 ? 1 : 0;
   const hits = G.results.filter(r => r.kind !== 'x').length;
+  let stars = pct >= 0.8 ? 3 : pct >= 0.5 ? 2 : pct >= 0.2 ? 1 : 0;
+  let fase = null;
+  if (G.mode === 'fase') {
+    stars = Math.max(0, hits - (PASS_HITS - 1));
+    const prog = faseProg(), prev = prog[G.fase] || 0;
+    if (stars > prev) { prog[G.fase] = stars; store.set('fases', prog); }
+    fase = { idx: G.fase, passed: stars > 0, hasNext: G.fase + 1 < FASES.length };
+  }
 
   const before = levelOf(stats.xp).n;
   stats.xp += G.score; stats.games++; stats.best = Math.max(stats.best, G.score);
@@ -421,27 +498,39 @@ function endGame() {
     const yk = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`;
     if (ds.last !== day) { ds.count = ds.last === yk ? ds.count + 1 : 1; ds.last = day; store.set('dailyStreak', ds); }
   }
-  renderResults({ mode: G.mode, score: G.score, results: G.results, stars, hits, xp: G.score, levelUp: levelOf(stats.xp).n > before });
+  renderResults({ mode: G.mode, score: G.score, results: G.results, stars, hits, xp: G.score, levelUp: levelOf(stats.xp).n > before, fase });
+
+  // ranking: soma os pontos e envia (se ainda não tem nome, guarda para depois)
+  Rank.addPending(G.score, G.mode === 'daily' ? G.score : 0);
+  if (Rank.getName()) Rank.sync(stats.xp);
+  $('#btn-join-rank').classList.toggle('hidden', !!Rank.getName());
 }
 
-function renderResults({ mode, score, results, stars, hits, xp, levelUp }) {
-  $('#res-kicker').textContent = mode === 'daily' ? `DESAFIO DO DIA #${dayNumber()}` : 'FIM DE JOGO';
+function renderResults({ mode, score, results, stars, hits, xp, levelUp, fase = null }) {
+  $('#res-kicker').textContent = mode === 'daily' ? `DESAFIO DO DIA #${dayNumber()}`
+    : fase ? `FASE ${fase.idx + 1} ${fase.passed ? 'CONCLUÍDA!' : '· QUASE!'}` : 'FIM DE JOGO';
   $('#res-score').textContent = '0';
-  $('#res-stars').innerHTML = [0, 1, 2].map(i => `<span style="animation-delay:${0.3 + i * 0.25}s">${i < stars ? '⭐' : '☆'}</span>`).join('');
+  $('#res-stars').innerHTML = [0, 1, 2].map(i => `<span class="${i < stars ? '' : 'e'}" style="animation-delay:${0.3 + i * 0.25}s">⭐</span>`).join('');
   const msgs = ['Seu ouvido tá de cabeça pra baixo 😅', 'Tá pegando o jeito!', 'Mandou muito bem! 👏', 'Ouvido de outro planeta! 🛸'];
-  $('#res-msg').textContent = `${hits}/${results.length} acertos · ${msgs[stars]}`;
+  $('#res-msg').textContent = fase && !fase.passed
+    ? `${hits}/${results.length} acertos · precisa de ${PASS_HITS} pra passar. Tenta de novo! 💪`
+    : `${hits}/${results.length} acertos · ${msgs[stars]}`;
+  $('#btn-next-fase').classList.toggle('hidden', !(fase && fase.passed && fase.hasNext));
+  $('#btn-join-rank').classList.add('hidden');
+  G.lastFase = fase;
   $('#res-grid').textContent = results.map(r => EMO[r.kind]).join('');
   $('#res-xp').textContent = levelUp ? `⬆️ SUBIU DE NÍVEL! Agora: ${levelOf(stats.xp).title}` : (xp != null ? `+${xp} XP · ${levelOf(stats.xp).title}` : '');
   $('#res-list').innerHTML = results.map(r =>
     `<li><span>${EMO[r.kind]}</span><span>${r.n}</span><em>${r.pts ? '+' + r.pts : ''}</em><button data-play="${r.id}" aria-label="Ouvir">🔊</button></li>`).join('');
-  $('#btn-again').textContent = mode === 'daily' ? '▶ Modo normal' : '🔄 Jogar de novo';
+  $('#btn-again').textContent = mode === 'daily' ? '▶ Jogar' : mode === 'fase' ? '🔄 Repetir' : '🔄 De novo';
   G.lastShare = { mode, score, results };
   show('s-results');
   // conta os pontos subindo
   const t0 = performance.now(), dur = 900;
   const step = (t) => { const k = Math.min(1, (t - t0) / dur); $('#res-score').textContent = Math.round(score * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); };
   requestAnimationFrame(step);
-  if (stars >= 2) { A.sfx.win(); confetti(200); }
+  if (stars >= 2) { A.sfx.win(); haptic('win'); confetti(200); }
+  else if (fase && fase.passed) { A.sfx.correct(); haptic('ok'); }
 }
 $('#res-list').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-play]'); if (!b) return;
@@ -459,15 +548,18 @@ $('#btn-share').addEventListener('click', async () => {
   const s = G.lastShare; if (!s) return;
   const grid = s.results.map(r => EMO[r.kind]).join('');
   const lvl = G.diff === 'hard' ? ' · modo difícil 😈' : '';
-  const head = (s.mode === 'daily' ? `🔁 REVERSO · Desafio #${dayNumber()}` : '🔁 REVERSO') + lvl;
+  const head = (s.mode === 'daily' ? `🔁 REVERSO · Desafio #${dayNumber()}` : s.mode === 'fase' && G.lastFase ? `🔁 REVERSO · Fase ${G.lastFase.idx + 1}` : '🔁 REVERSO') + lvl;
   const text = `${head}\nFiz ${s.score} pts adivinhando famosos AO CONTRÁRIO 🙃\n${grid}\nDuvido você me bater 👇`;
   try {
     if (navigator.share) await navigator.share({ title: 'Reverso', text, url: SITE });
     else { await navigator.clipboard.writeText(text + '\n' + SITE); toast('Copiado! Cola no grupo 😎'); }
   } catch {}
 });
-$('#btn-again').addEventListener('click', () => startGame('classic'));
-$('#btn-home').addEventListener('click', () => { show('s-home'); refreshHome(); });
+$('#btn-again').addEventListener('click', () => G.mode === 'fase' ? startGame('fase', G.fase) : startGame('classic'));
+$('#btn-next-fase').addEventListener('click', () => { A.sfx.tap(); startGame('fase', G.fase + 1); });
+$('#btn-join-rank').addEventListener('click', () => askName(() => { $('#btn-join-rank').classList.add('hidden'); }));
+$('#btn-home').addEventListener('click', () => { if (G.mode === 'fase') { show('s-map'); renderMap(); } else { show('s-home'); refreshHome(); } });
+$$('[data-home]').forEach(b => b.addEventListener('click', () => { A.sfx.tap(); show('s-home'); refreshHome(); }));
 
 // ============ MODO FESTA ============
 const P = { round: 1, orig: null, rev: null, me: null, hits: 0, misses: 0 };
@@ -532,12 +624,81 @@ $('#p3-replay').addEventListener('click', () => P.orig && A.play(P.orig));
 $('#p3-ok').addEventListener('click', () => { P.hits++; A.sfx.correct(); confetti(90); P.round++; setTimeout(partyReset, 700); partyTally(); });
 $('#p3-no').addEventListener('click', () => { P.misses++; A.sfx.wrong(); P.round++; partyReset(); partyTally(); });
 
+// ============ RANKING ============
+let board = 'week';
+const BOARD_DESC = {
+  day: '📅 Pontos no Desafio do Dia de hoje',
+  week: '🗓️ Pontos somados nesta semana (todos os modos)',
+  all: '🌎 XP total de todos os tempos',
+};
+async function loadBoard() {
+  $$('#rank-tabs button').forEach(b => b.classList.toggle('on', b.dataset.board === board));
+  $('#rank-desc').textContent = BOARD_DESC[board];
+  $('#podium').innerHTML = ''; $('#rank-me').innerHTML = '';
+  $('#rank-list').innerHTML = '<li class="rank-empty">Carregando... ⏳</li>';
+  if (Rank.getName()) await Rank.sync(stats.xp); // envia pontos pendentes antes de mostrar
+  let data;
+  try { data = await Rank.board(board); }
+  catch { $('#rank-list').innerHTML = '<li class="rank-empty">Sem conexão com o ranking 😕<br>Tenta de novo daqui a pouco.</li>'; return; }
+  const top = data.top;
+  if (!top.length) $('#rank-list').innerHTML = '<li class="rank-empty">Ninguém aqui ainda... seja o primeiro! 🚀</li>';
+  else {
+    $('#podium').innerHTML = [1, 0, 2].map(i => {
+      const pl = top[i];
+      if (!pl) return `<div class="pod p${i + 1} empty"></div>`;
+      return `<div class="pod p${i + 1} ${pl.me ? 'me' : ''}"><span class="medal">${['🥇', '🥈', '🥉'][i]}</span><span class="pn">${esc(pl.name)}</span><span class="ps">${pl.score} pts</span><div class="block">${i + 1}</div></div>`;
+    }).join('');
+    $('#rank-list').innerHTML = top.slice(3).map((pl, i) =>
+      `<li class="${pl.me ? 'me' : ''}"><span class="pos">${i + 4}º</span><span class="nm">${esc(pl.name)}</span><span class="sc">${pl.score}</span></li>`).join('');
+  }
+  if (!Rank.getName()) $('#rank-me').innerHTML = 'Você ainda não está no ranking · <button id="rank-join">Entrar agora</button>';
+  else if (data.me && !top.some(pl => pl.me)) $('#rank-me').textContent = `Você: ${data.me.rank}º lugar com ${data.me.score} pts`;
+  else if (!data.me) $('#rank-me').textContent = board === 'day' ? 'Jogue o Desafio do Dia pra aparecer aqui! 📅' : 'Jogue uma partida pra aparecer aqui! 🎮';
+}
+$('#rank-tabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; A.sfx.tap(); board = b.dataset.board; loadBoard(); });
+$('#rank-refresh').addEventListener('click', () => { A.sfx.tap(); loadBoard(); });
+$('#rank-me').addEventListener('click', (e) => { if (e.target.id === 'rank-join') askName(loadBoard); });
+$('#btn-rank').addEventListener('click', () => {
+  A.sfx.tap(); show('s-rank'); loadBoard();
+  if (!Rank.getName()) setTimeout(() => askName(loadBoard), 400);
+});
+
+let afterName = null;
+function askName(cb) {
+  afterName = cb || null;
+  $('#name-input').value = Rank.getName() || '';
+  $('#name-err').textContent = '';
+  openModal('name');
+  setTimeout(() => $('#name-input').focus(), 300);
+}
+$('#name-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = $('#name-input').value.trim();
+  if (name.length < 2) { $('#name-err').textContent = 'Escreve pelo menos 2 letras 🙂'; return; }
+  const btn = $('#name-save'); btn.disabled = true; btn.textContent = 'Salvando...';
+  const r = await Rank.sync(stats.xp, name);
+  btn.disabled = false; btn.textContent = 'Entrar no ranking';
+  if (!r.ok) {
+    $('#name-err').textContent = r.reason === 'nome' ? (r.msg || 'Escolha outro nome.') : r.reason === 'rede' ? 'Sem internet agora. Tenta de novo!' : 'Deu ruim no servidor. Tenta de novo.';
+    haptic('bad'); return;
+  }
+  $('#m-name').classList.remove('show');
+  haptic('ok'); toast(`🏆 Bem-vindo ao ranking, ${Rank.getName()}!`);
+  refreshHome();
+  if (afterName) { const cb = afterName; afterName = null; cb(); }
+});
+$('#btn-edit-name').addEventListener('click', (e) => { e.stopPropagation(); A.sfx.tap(); askName(); });
+
 // ============ HOME ============
 function refreshHome() {
   renderLevel();
+  $('#player-name').textContent = Rank.getName() || 'Jogador';
+  $('#chip-days').textContent = `🔥 ${store.get('dailyStreak', { count: 0 }).count}`;
+  $('#chip-stars').textContent = `⭐ ${totalStars()}`;
+  $('#map-sub').textContent = `Fase ${currentFase() + 1} de ${FASES.length}`;
   const d = store.get('daily', null);
   const done = d && d.day === todayKey();
-  $('#daily-sub').textContent = done ? `✅ Feito hoje · ${d.score} pts` : `#${dayNumber()} · igual pra todo mundo`;
+  $('#daily-sub').textContent = done ? `✅ Feito · ${d.score} pts` : `#${dayNumber()} · 5 nomes`;
 }
 $('#btn-play').addEventListener('click', () => { A.sfx.tap(); startGame('classic'); });
 $('#btn-daily').addEventListener('click', () => { A.sfx.tap(); startGame('daily'); });
@@ -579,7 +740,7 @@ $('#btn-install').addEventListener('click', async () => {
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 
 // ============ início ============
-renderCats(); renderSound(); renderDiff(); refreshHome();
+renderCats(); renderSound(); renderVib(); renderDiff(); refreshHome();
 if (!store.get('seenHowto', false)) { store.set('seenHowto', true); setTimeout(() => openModal('howto'), 600); }
 window.addEventListener('resize', () => {
   const r = G.r; if (r && r.rev && $('#s-game').classList.contains('active')) {

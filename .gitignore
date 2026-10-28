@@ -1,5 +1,9 @@
 node_modules
 .vercel
 __pycache__
+.env*.local
+.agents
+.claude
+skills-lock.json
 
-.vercel
+.env*

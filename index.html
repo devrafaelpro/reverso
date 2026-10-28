@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Reverso — adivinhe o nome ao contrário</title>
+  <meta name="description" content="Ouça o nome de um famoso ao contrário, grave você imitando e descubra quem é. O desafio do áudio invertido que viralizou, agora como jogo.">
+  <meta name="theme-color" content="#120a24">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Reverso">
+  <meta property="og:title" content="Reverso — adivinhe o nome ao contrário">
+  <meta property="og:description" content="Ouça ao contrário, imite, desvire e acerte o famoso. Quantos pontos você faz?">
+  <meta property="og:image" content="/icons/icon-512.png">
+  <meta property="og:type" content="website">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Bungee&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="bg" aria-hidden="true"><i></i><i></i><i></i></div>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <main id="app">
+
+    <!-- ============ HOME ============ -->
+    <section class="screen active" id="s-home">
+      <header class="home-top">
+        <button class="icon-btn" data-open="howto" aria-label="Como jogar">?</button>
+        <button class="icon-btn" id="btn-sound" aria-label="Som">🔊</button>
+      </header>
+
+      <div class="logo" id="logo" aria-label="Reverso"></div>
+      <p class="tagline">Ouça ao contrário. Imite. Desvire. <b>Acerte.</b></p>
+
+      <div class="level-card" data-open="stats">
+        <div class="lvl-badge"><span id="lvl-num">1</span></div>
+        <div class="lvl-info">
+          <div class="lvl-title" id="lvl-title">Ouvido de Lata</div>
+          <div class="bar"><i id="lvl-bar"></i></div>
+          <div class="lvl-xp" id="lvl-xp">0 / 50 XP</div>
+        </div>
+        <div class="lvl-arrow">›</div>
+      </div>
+
+      <button class="btn btn-play" id="btn-play">
+        <span class="btn-ico">▶</span>
+        <span><b>JOGAR</b><small>10 famosos ao contrário</small></span>
+      </button>
+
+      <div class="row2">
+        <button class="btn btn-daily" id="btn-daily">
+          <span class="btn-ico">📅</span>
+          <span><b>Desafio do Dia</b><small id="daily-sub">5 nomes · igual pra todo mundo</small></span>
+        </button>
+        <button class="btn btn-party" id="btn-party">
+          <span class="btn-ico">🎉</span>
+          <span><b>Modo Festa</b><small>grave e passe o celular</small></span>
+        </button>
+      </div>
+
+      <div class="cats-wrap">
+        <div class="cats-label">Categorias</div>
+        <div class="cats" id="cats"></div>
+      </div>
+
+      <footer class="home-foot">
+        <button class="link" data-open="stats">📊 Estatísticas</button>
+        <button class="link hidden" id="btn-install">📲 Instalar app</button>
+      </footer>
+    </section>
+
+    <!-- ============ GAME ============ -->
+    <section class="screen" id="s-game">
+      <header class="game-top">
+        <button class="icon-btn" id="btn-quit" aria-label="Sair">✕</button>
+        <div class="dots" id="dots"></div>
+        <div class="score-pill"><span id="score">0</span><small>pts</small></div>
+      </header>
+
+      <div class="round-info">
+        <span class="chip" id="cat-chip">🎤 Música</span>
+        <span class="chip chip-worth" id="worth">Vale 10 pts</span>
+        <span class="chip chip-streak hidden" id="streak">🔥 2</span>
+      </div>
+
+      <div class="card step" id="step1">
+        <div class="step-head"><span class="step-n">1</span><span>Ouça o nome <b>ao contrário</b></span></div>
+        <div class="player">
+          <button class="play-btn" id="play-rev" aria-label="Tocar ao contrário"><span>▶</span></button>
+          <canvas class="wave" id="wave-rev"></canvas>
+        </div>
+        <div class="mini-row">
+          <button class="mini" id="btn-slow">🐢 Devagar</button>
+          <span class="mini-note" id="plays-note">toque para ouvir</span>
+        </div>
+      </div>
+
+      <div class="card step" id="step2">
+        <div class="step-head"><span class="step-n">2</span><span>Imite o que ouviu e <b>desvire</b></span></div>
+        <div class="rec-zone">
+          <button class="rec-btn" id="rec-btn" aria-label="Gravar">
+            <svg viewBox="0 0 24 24" class="mic"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+            <svg viewBox="0 0 24 24" class="stop"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            <svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg>
+          </button>
+          <div class="rec-side">
+            <canvas class="wave" id="wave-me"></canvas>
+            <div class="rec-hint" id="rec-hint">Toque no microfone e repita o som estranho</div>
+          </div>
+        </div>
+        <div class="mini-row hidden" id="me-controls">
+          <button class="mini" id="play-me">🔁 Ouvir desvirado</button>
+          <button class="mini" id="play-me-raw">🙃 Minha gravação</button>
+        </div>
+      </div>
+
+      <form class="guess" id="guess-form" autocomplete="off">
+        <input id="guess" type="text" placeholder="Quem é? Digite o nome..." enterkeyhint="send" autocapitalize="words" spellcheck="false">
+        <button type="submit" class="btn-guess" aria-label="Chutar">➜</button>
+      </form>
+      <div class="guess-meta">
+        <div class="tries" id="tries"></div>
+        <div class="hint-text" id="hint-text"></div>
+      </div>
+
+      <div class="game-actions">
+        <button class="btn-ghost" id="btn-hint">💡 Dica <small>−3</small></button>
+        <button class="btn-ghost" id="btn-skip">🏳️ Desisto</button>
+      </div>
+    </section>
+
+    <!-- ============ RESULTS ============ -->
+    <section class="screen" id="s-results">
+      <div class="res-wrap">
+        <div class="res-kicker" id="res-kicker">FIM DE JOGO</div>
+        <div class="res-score"><span id="res-score">0</span><small>pontos</small></div>
+        <div class="res-stars" id="res-stars"></div>
+        <div class="res-msg" id="res-msg"></div>
+        <div class="res-grid" id="res-grid"></div>
+        <div class="res-legend">🟢 só no reverso · 🟡 gravando · 🟠 com dica · ❌ errou</div>
+        <div class="res-xp" id="res-xp"></div>
+        <button class="btn btn-play" id="btn-share"><span class="btn-ico">📤</span><span><b>Desafiar amigos</b><small>compartilhe seu resultado</small></span></button>
+        <div class="row2">
+          <button class="btn btn-sec" id="btn-again">🔄 Jogar de novo</button>
+          <button class="btn btn-sec" id="btn-home">🏠 Início</button>
+        </div>
+        <ul class="res-list" id="res-list"></ul>
+      </div>
+    </section>
+
+    <!-- ============ PARTY ============ -->
+    <section class="screen" id="s-party">
+      <header class="game-top">
+        <button class="icon-btn" id="party-quit" aria-label="Sair">✕</button>
+        <div class="party-title">🎉 Modo Festa</div>
+        <div class="score-pill"><span id="party-round">1</span><small>rod.</small></div>
+      </header>
+
+      <div class="party-step" id="p1">
+        <div class="party-who">👄 Vez de quem <b>FALA</b></div>
+        <p class="party-txt">Pense num famoso (ou qualquer palavra!) e grave falando <b>normal</b>. Não deixe ninguém ver!</p>
+        <input id="party-secret" class="party-input" type="text" placeholder="(opcional) escreva o que vai falar" autocomplete="off">
+        <button class="rec-btn big" id="p1-rec" aria-label="Gravar">
+          <svg viewBox="0 0 24 24" class="mic"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+          <svg viewBox="0 0 24 24" class="stop"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+          <svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg>
+        </button>
+        <canvas class="wave wide" id="p1-wave"></canvas>
+        <div class="rec-hint center" id="p1-hint">Toque para gravar</div>
+        <div class="party-actions hidden" id="p1-done">
+          <button class="mini" id="p1-listen">🔁 Ouvir ao contrário</button>
+          <button class="btn btn-play" id="p1-next"><span class="btn-ico">📱</span><span><b>Passar o celular</b><small>agora é a vez de quem adivinha</small></span></button>
+        </div>
+      </div>
+
+      <div class="party-step hidden" id="p2">
+        <div class="party-who">👂 Vez de quem <b>ADIVINHA</b></div>
+        <div class="card">
+          <div class="step-head"><span class="step-n">1</span><span>Ouça ao contrário</span></div>
+          <div class="player">
+            <button class="play-btn" id="p2-play"><span>▶</span></button>
+            <canvas class="wave" id="p2-wave"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="step-head"><span class="step-n">2</span><span>Imite e desvire</span></div>
+          <div class="rec-zone">
+            <button class="rec-btn" id="p2-rec" aria-label="Gravar">
+              <svg viewBox="0 0 24 24" class="mic"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+              <svg viewBox="0 0 24 24" class="stop"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+              <svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg>
+            </button>
+            <div class="rec-side">
+              <canvas class="wave" id="p2-me-wave"></canvas>
+              <div class="rec-hint" id="p2-hint">Grave imitando o som</div>
+            </div>
+          </div>
+          <div class="mini-row hidden" id="p2-me-controls">
+            <button class="mini" id="p2-play-me">🔁 Ouvir desvirado</button>
+          </div>
+        </div>
+        <button class="btn btn-play" id="p2-reveal"><span class="btn-ico">👀</span><span><b>Revelar</b><small>ouvir o original</small></span></button>
+      </div>
+
+      <div class="party-step hidden" id="p3">
+        <div class="party-who">🎬 Era...</div>
+        <div class="reveal-name" id="p3-name">???</div>
+        <button class="mini" id="p3-replay">🔊 Ouvir original de novo</button>
+        <div class="party-judge">
+          <button class="btn btn-ok" id="p3-ok">✅ Acertou</button>
+          <button class="btn btn-no" id="p3-no">❌ Errou</button>
+        </div>
+        <div class="party-tally" id="party-tally"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ REVEAL SHEET ============ -->
+  <div class="sheet-backdrop" id="reveal">
+    <div class="sheet">
+      <div class="sheet-emoji" id="rv-emoji">🎉</div>
+      <div class="sheet-title" id="rv-title">Acertou!</div>
+      <div class="reveal-name" id="rv-name">Caetano Veloso</div>
+      <div class="rv-points" id="rv-points">+10 pts</div>
+      <div class="rv-btns">
+        <button class="mini" id="rv-orig">🔊 Original</button>
+        <button class="mini" id="rv-rev">🔁 Ao contrário</button>
+      </div>
+      <button class="btn btn-play" id="rv-next"><span class="btn-ico">➜</span><span><b id="rv-next-label">Próximo</b></span></button>
+    </div>
+  </div>
+
+  <!-- ============ MODALS ============ -->
+  <div class="modal" id="m-howto">
+    <div class="modal-box">
+      <button class="modal-x" data-close>✕</button>
+      <h2>Como jogar</h2>
+      <ol class="how">
+        <li><span>🔁</span><div><b>Ouça ao contrário.</b> O nome de um famoso toca de trás pra frente. Já sacou? Chuta e leva <b>10 pts</b>.</div></li>
+        <li><span>🎙️</span><div><b>Imite o som.</b> Grave você repetindo exatamente o que ouviu, por mais estranho que seja.</div></li>
+        <li><span>🙃</span><div><b>Desvire.</b> O jogo inverte sua gravação e... surpresa! O nome aparece. Acertando assim vale <b>6 pts</b>.</div></li>
+        <li><span>💡</span><div><b>Dica</b> mostra as letras iniciais (−3 pts). Você tem <b>3 chutes</b> por nome.</div></li>
+        <li><span>🔥</span><div><b>Sequência:</b> acertos seguidos dão bônus de até <b>+5</b>.</div></li>
+      </ol>
+      <p class="how-tip">Dica de ouro: imite o ritmo e as sílabas, não tente entender. Quanto mais fiel, melhor fica quando desvira! 😂</p>
+      <button class="btn btn-play" data-close><span class="btn-ico">👍</span><span><b>Bora!</b></span></button>
+    </div>
+  </div>
+
+  <div class="modal" id="m-stats">
+    <div class="modal-box">
+      <button class="modal-x" data-close>✕</button>
+      <h2>Estatísticas</h2>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="titles" id="titles"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="m-ios">
+    <div class="modal-box">
+      <button class="modal-x" data-close>✕</button>
+      <h2>Instalar no iPhone</h2>
+      <ol class="how">
+        <li><span>1</span><div>Toque em <b>Compartilhar</b> <span class="ios-share">⬆︎</span> na barra do Safari.</div></li>
+        <li><span>2</span><div>Escolha <b>Adicionar à Tela de Início</b>.</div></li>
+        <li><span>3</span><div>Pronto! O Reverso abre como um app. 🎉</div></li>
+      </ol>
+      <button class="btn btn-play" data-close><span class="btn-ico">👍</span><span><b>Entendi</b></span></button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

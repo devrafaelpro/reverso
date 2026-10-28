@@ -53,6 +53,11 @@
         <span><b>JOGAR</b><small>10 famosos ao contrário</small></span>
       </button>
 
+      <div class="seg" id="diff">
+        <button data-diff="easy">😊 Fácil <small>escolher entre 4</small></button>
+        <button data-diff="hard">😈 Difícil <small>digitar · pontos x2</small></button>
+      </div>
+
       <div class="row2">
         <button class="btn btn-daily" id="btn-daily">
           <span class="btn-ico">📅</span>
@@ -124,13 +129,14 @@
         <input id="guess" type="text" placeholder="Quem é? Digite o nome..." enterkeyhint="send" autocapitalize="words" spellcheck="false">
         <button type="submit" class="btn-guess" aria-label="Chutar">➜</button>
       </form>
+      <div class="options hidden" id="options"></div>
       <div class="guess-meta">
         <div class="tries" id="tries"></div>
         <div class="hint-text" id="hint-text"></div>
       </div>
 
       <div class="game-actions">
-        <button class="btn-ghost" id="btn-hint">💡 Dica <small>−3</small></button>
+        <button class="btn-ghost" id="btn-hint">💡 <span id="hint-label">Dica</span> <small>−3</small></button>
         <button class="btn-ghost" id="btn-skip">🏳️ Desisto</button>
       </div>
     </section>
@@ -245,7 +251,8 @@
         <li><span>🔁</span><div><b>Ouça ao contrário.</b> O nome de um famoso toca de trás pra frente. Já sacou? Chuta e leva <b>10 pts</b>.</div></li>
         <li><span>🎙️</span><div><b>Imite o som.</b> Grave você repetindo exatamente o que ouviu, por mais estranho que seja.</div></li>
         <li><span>🙃</span><div><b>Desvire.</b> O jogo inverte sua gravação e... surpresa! O nome aparece. Acertando assim vale <b>6 pts</b>.</div></li>
-        <li><span>💡</span><div><b>Dica</b> mostra as letras iniciais (−3 pts). Você tem <b>3 chutes</b> por nome.</div></li>
+        <li><span>💡</span><div><b>Dicas</b> (−3 cada): a 1ª elimina opções ou mostra as iniciais; a 2ª toca o <b>começo do nome</b> normal.</div></li>
+        <li><span>😈</span><div><b>Modo Difícil:</b> você digita o nome e os pontos valem <b>dobrado</b>.</div></li>
         <li><span>🔥</span><div><b>Sequência:</b> acertos seguidos dão bônus de até <b>+5</b>.</div></li>
       </ol>
       <p class="how-tip">Dica de ouro: imite o ritmo e as sílabas, não tente entender. Quanto mais fiel, melhor fica quando desvira! 😂</p>

@@ -53,6 +53,7 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
   opacity: 0; pointer-events: none; transform: translateY(18px) scale(.98);
   transition: opacity .35s ease, transform .35s cubic-bezier(.2,.9,.3,1.2);
 }
+.screen > * { flex-shrink: 0; }
 .screen.active { opacity: 1; pointer-events: auto; transform: none; }
 
 /* ---------- common ---------- */
@@ -122,6 +123,11 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .cat { padding: 8px 12px; border-radius: 99px; font-size: 14px; font-weight: 700; background: var(--card); border: 1px solid var(--card-b); transition: all .2s; opacity: .55; }
 .cat.on { opacity: 1; background: rgba(139,92,246,.3); border-color: rgba(167,139,250,.7); }
 .home-foot { display: flex; justify-content: center; gap: 8px; margin-top: auto; }
+
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 18px; background: var(--card); border: 1px solid var(--card-b); }
+.seg button { padding: 10px 6px; border-radius: 14px; font-weight: 800; font-size: 15px; color: var(--muted); transition: all .2s; }
+.seg button small { display: block; font-size: 11px; font-weight: 600; opacity: .8; }
+.seg button.on { background: rgba(139,92,246,.35); color: var(--txt); box-shadow: inset 0 0 0 1px rgba(167,139,250,.7); }
 
 /* ---------- game ---------- */
 .game-top { display: flex; align-items: center; gap: 10px; }
@@ -197,6 +203,12 @@ input { font: inherit; -webkit-user-select: text; user-select: text; }
 .tries i { width: 10px; height: 10px; border-radius: 50%; background: #fff; transition: all .3s; }
 .tries i.used { background: rgba(255,255,255,.18); transform: scale(.8); }
 .hint-text { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-weight: 700; letter-spacing: 2px; color: #fde68a; font-size: 15px; text-align: right; }
+.options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.opt { padding: 15px 10px; border-radius: 16px; background: rgba(255,255,255,.95); color: #1a1030; font-weight: 800; font-size: 16px; line-height: 1.15; min-height: 58px; transition: transform .15s, opacity .3s, background .2s; }
+.opt:active { transform: scale(.95); }
+.opt.wrong { background: rgba(239,68,68,.25); color: #fecaca; text-decoration: line-through; opacity: .6; pointer-events: none; animation: shake .45s; }
+.opt.gone { opacity: .15; pointer-events: none; }
+.opt.right { background: var(--green); color: #fff; }
 .game-actions { display: flex; gap: 10px; margin-top: auto; }
 .btn-ghost { flex: 1; padding: 13px; border-radius: 16px; background: transparent; border: 1px solid var(--card-b); font-weight: 700; color: var(--muted); }
 .btn-ghost small { opacity: .7; }

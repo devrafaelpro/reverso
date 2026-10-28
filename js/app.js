@@ -25,6 +25,9 @@ const LEVELS = [
   [2400, 'Gênio do Avesso'], [3300, 'OSREVER SUPREMO'],
 ];
 
+// Mude AUDIO_V sempre que regerar os áudios (força os celulares a baixarem de novo).
+const AUDIO_V = 2;
+const audioUrl = (id) => `/audio/${id}.mp3?v=${AUDIO_V}`;
 const ROUNDS = 10, DAILY_ROUNDS = 5, MAX_TRIES = 3;
 const PTS_REVERSE = 10, PTS_RECORDED = 6, HINT_COST = 3, MAX_COMBO = 5;
 
@@ -111,6 +114,14 @@ $('#cats').addEventListener('click', (e) => {
   store.set('cats', cats); renderCats();
 });
 
+// ============ dificuldade ============
+let diff = store.get('diff', 'easy');
+function renderDiff() { $$('#diff button').forEach(b => b.classList.toggle('on', b.dataset.diff === diff)); }
+$('#diff').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  diff = b.dataset.diff; store.set('diff', diff); renderDiff(); A.sfx.tap();
+});
+
 // ============ som ============
 let soundOn = store.get('sound', true);
 function renderSound() { $('#btn-sound').textContent = soundOn ? '🔊' : '🔇'; A.setSfx(soundOn); }
@@ -146,7 +157,7 @@ function recUI({ btn, canvas, hint, maxSec = 7, onDone }) {
     try {
       levels = [];
       await recorder.start({ maxSec, onLevel: (v) => levels.push(Math.min(1, v * 6 + 0.04)), onAutoStop: finish });
-      A.sfx.recOn(); vibrate(20);
+      vibrate(20); // sem bip aqui: ele seria gravado junto e sujaria o áudio desvirado
       btn.classList.add('rec');
       hint.textContent = 'Gravando... toque de novo para parar';
       draw();
@@ -180,6 +191,7 @@ async function startGame(mode) {
     if (d && d.day === todayKey()) { showDailyDone(d); return; }
   }
   G.mode = mode;
+  G.diff = diff;
   G.items = mode === 'daily' ? pickDaily() : pickClassic();
   G.idx = 0; G.score = 0; G.streak = 0; G.results = [];
   $('#score').textContent = '0';
@@ -190,24 +202,47 @@ async function startGame(mode) {
 
 function worth() {
   const r = G.r;
-  return Math.max(1, (r.recorded ? PTS_RECORDED : PTS_REVERSE) - (r.hint ? HINT_COST : 0));
+  const base = Math.max(1, (r.recorded ? PTS_RECORDED : PTS_REVERSE) - r.hint * HINT_COST);
+  return base * (G.diff === 'hard' ? 2 : 1);
 }
 function renderWorth() {
   const w = worth(), el = $('#worth');
   el.textContent = `Vale ${w} pts`;
-  el.classList.toggle('mid', w < PTS_REVERSE && w >= 5);
-  el.classList.toggle('low', w < 5);
+  const k = G.diff === 'hard' ? 2 : 1;
+  el.classList.toggle('mid', w < PTS_REVERSE * k && w >= 5 * k);
+  el.classList.toggle('low', w < 5 * k);
   const s = $('#streak');
   if (G.streak >= 1) { s.classList.remove('hidden'); s.textContent = `🔥 ${G.streak} · +${Math.min(G.streak, MAX_COMBO)}`; }
   else s.classList.add('hidden');
 }
 function renderTries() {
-  $('#tries').innerHTML = Array.from({ length: MAX_TRIES }, (_, i) => `<i class="${i < MAX_TRIES - G.r.tries ? 'used' : ''}"></i>`).join('');
+  const max = G.r.maxTries;
+  $('#tries').innerHTML = Array.from({ length: max }, (_, i) => `<i class="${i < max - G.r.tries ? 'used' : ''}"></i>`).join('');
 }
+
+function buildOptions(item) {
+  const same = shuffle(NAMES.filter(n => n.c === item.c && n.id !== item.id)).slice(0, 3);
+  $('#options').innerHTML = shuffle([item, ...same]).map(o => `<button class="opt" data-id="${o.id}">${o.n}</button>`).join('');
+}
+$('#options').addEventListener('click', (e) => {
+  const b = e.target.closest('.opt'); const r = G.r; if (!b || !r || r.done) return;
+  if (b.dataset.id === r.item.id) { b.classList.add('right'); return finishRound(true); }
+  b.classList.add('wrong'); r.tries--; renderTries();
+  A.sfx.wrong(); vibrate([40, 40, 40]);
+  if (r.tries <= 0) return finishRound(false);
+  toast(r.recorded ? 'Não é! Última chance 👀' : 'Não é! Tenta gravar e desvirar 🎙️');
+});
 
 async function loadRound() {
   const item = G.items[G.idx];
-  G.r = { item, tries: MAX_TRIES, hint: false, recorded: false, plays: 0, done: false, rev: null, orig: null, me: null, meRaw: null };
+  const easy = G.diff !== 'hard';
+  const maxTries = easy ? 2 : MAX_TRIES;
+  G.r = { item, tries: maxTries, maxTries, hint: 0, recorded: false, plays: 0, done: false, rev: null, orig: null, me: null, meRaw: null };
+  $('#guess-form').classList.toggle('hidden', easy);
+  $('#options').classList.toggle('hidden', !easy);
+  if (easy) buildOptions(item);
+  $('#hint-label').textContent = 'Dica';
+  $('#btn-hint').querySelector('small').textContent = '−3';
   $$('#dots i').forEach((d, i) => d.classList.toggle('cur', i === G.idx));
   $('#cat-chip').textContent = CATS[item.c];
   $('#guess').value = ''; $('#guess').classList.remove('shake', 'warm');
@@ -220,14 +255,14 @@ async function loadRound() {
   renderWorth(); renderTries();
   A.drawWave($('#wave-rev'), null); A.drawWave($('#wave-me'), null);
   try {
-    const orig = await A.load(`/audio/${item.id}.mp3`);
+    const orig = await A.load(audioUrl(item.id));
     if (G.r.item !== item) return;
     G.r.orig = orig; G.r.rev = A.reverse(orig);
     G.r.revPk = A.peaks(G.r.rev, A.barCount($('#wave-rev')));
     A.drawWave($('#wave-rev'), G.r.revPk, 0);
   } catch (e) { console.error(e); toast('Erro ao carregar o áudio. Verifique a internet.'); }
   // pré-carrega o próximo
-  const nx = G.items[G.idx + 1]; if (nx) A.load(`/audio/${nx.id}.mp3`).catch(() => {});
+  const nx = G.items[G.idx + 1]; if (nx) A.load(audioUrl(nx.id)).catch(() => {});
 }
 
 async function playRev() {
@@ -259,7 +294,9 @@ recUI({
     r.meRaw = buf; r.me = A.reverse(buf);
     r.mePk = A.peaks(r.me, A.barCount($('#wave-me')));
     if (!r.recorded) { r.recorded = true; renderWorth(); }
-    $('#rec-hint').textContent = 'Esse é você desvirado! Reconheceu? 👀';
+    $('#rec-hint').textContent = r.rev && buf.duration < r.rev.duration * 0.55
+      ? 'Ficou curtinho... tenta imitar o áudio inteiro, do começo ao fim 😉'
+      : 'Esse é você desvirado! Reconheceu? 👀';
     $('#me-controls').classList.remove('hidden');
     playMe();
   },
@@ -290,11 +327,26 @@ $('#guess-form').addEventListener('submit', (e) => {
   toast(r.recorded ? `Não é... ${r.tries} chute${r.tries > 1 ? 's' : ''} restante${r.tries > 1 ? 's' : ''}` : `Não é! Tenta gravar e desvirar 🎙️`);
 });
 
+// Dica 1: elimina uma opção errada (fácil) ou mostra as iniciais (difícil).
+// Dica 2: toca o começo do nome normal. Depois disso, o botão repete o começo sem custo.
 $('#btn-hint').addEventListener('click', () => {
-  const r = G.r; if (r.done || r.hint) return;
-  r.hint = true; A.sfx.tap();
-  $('#hint-text').textContent = maskName(r.item.n);
-  $('#btn-hint').disabled = true;
+  const r = G.r; if (!r || r.done || !r.orig) return;
+  A.sfx.tap();
+  if (r.hint >= 2) { A.play(A.head(r.orig, 0.42)); return; }
+  r.hint++;
+  if (r.hint === 1) {
+    if (G.diff === 'hard') $('#hint-text').textContent = maskName(r.item.n);
+    else {
+      const wrong = $$('#options .opt').filter(b => b.dataset.id !== r.item.id && !b.classList.contains('wrong'));
+      if (wrong.length) shuffle(wrong)[0].classList.add('gone');
+    }
+    $('#hint-label').textContent = 'Ouvir o começo';
+    toast(G.diff === 'hard' ? '💡 Olha as iniciais aí embaixo' : '💡 Tirei uma opção errada');
+  } else {
+    $('#hint-label').textContent = 'Começo de novo';
+    $('#btn-hint').querySelector('small').textContent = '';
+    A.play(A.head(r.orig, 0.42));
+  }
   renderWorth();
 });
 $('#btn-skip').addEventListener('click', () => { if (!G.r.done) finishRound(false); });
@@ -393,7 +445,7 @@ function renderResults({ mode, score, results, stars, hits, xp, levelUp }) {
 }
 $('#res-list').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-play]'); if (!b) return;
-  try { A.play(await A.load(`/audio/${b.dataset.play}.mp3`)); } catch {}
+  try { A.play(await A.load(audioUrl(b.dataset.play))); } catch {}
 });
 
 function showDailyDone(d) {
@@ -406,7 +458,8 @@ function showDailyDone(d) {
 $('#btn-share').addEventListener('click', async () => {
   const s = G.lastShare; if (!s) return;
   const grid = s.results.map(r => EMO[r.kind]).join('');
-  const head = s.mode === 'daily' ? `🔁 REVERSO · Desafio #${dayNumber()}` : '🔁 REVERSO';
+  const lvl = G.diff === 'hard' ? ' · modo difícil 😈' : '';
+  const head = (s.mode === 'daily' ? `🔁 REVERSO · Desafio #${dayNumber()}` : '🔁 REVERSO') + lvl;
   const text = `${head}\nFiz ${s.score} pts adivinhando famosos AO CONTRÁRIO 🙃\n${grid}\nDuvido você me bater 👇`;
   try {
     if (navigator.share) await navigator.share({ title: 'Reverso', text, url: SITE });
@@ -526,7 +579,7 @@ $('#btn-install').addEventListener('click', async () => {
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 
 // ============ início ============
-renderCats(); renderSound(); refreshHome();
+renderCats(); renderSound(); renderDiff(); refreshHome();
 if (!store.get('seenHowto', false)) { store.set('seenHowto', true); setTimeout(() => openModal('howto'), 600); }
 window.addEventListener('resize', () => {
   const r = G.r; if (r && r.rev && $('#s-game').classList.contains('active')) {

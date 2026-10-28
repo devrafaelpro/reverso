@@ -11,7 +11,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data", "names.json")
 OUT_AUDIO = os.path.join(ROOT, "audio")
 OUT_JS = os.path.join(ROOT, "js", "names.js")
-VOICES = ["pt-BR-AntonioNeural", "pt-BR-FranciscaNeural", "pt-BR-ThalitaMultilingualNeural"]
+# Só vozes brasileiras: a Thalita "multilíngue" puxava sotaque inglês nos nomes.
+# Cada nome pode fixar a voz com "v": "A" (Antonio) ou "F" (Francisca), escolhida pela que o Whisper entende melhor.
+VOICES = {"A": "pt-BR-AntonioNeural", "F": "pt-BR-FranciscaNeural"}
 
 
 def slug(s):
@@ -26,7 +28,7 @@ async def gen(item, voice, force):
     text = item.get("s") or item["n"]
     for attempt in range(4):
         try:
-            await edge_tts.Communicate(text, voice, rate="-8%").save(path)
+            await edge_tts.Communicate(text, voice, rate="-12%").save(path)
             print("ok ", item["id"], voice)
             return
         except Exception as e:  # rede instável: tenta de novo
@@ -50,7 +52,7 @@ async def main():
 
     async def run(i, it):
         async with sem:
-            await gen(it, VOICES[i % len(VOICES)], force)
+            await gen(it, VOICES[it.get("v") or "AF"[i % 2]], force)
 
     await asyncio.gather(*(run(i, it) for i, it in enumerate(items)))
 

@@ -1,5 +1,5 @@
 // Service worker: app abre offline e os áudios ficam em cache depois de tocados.
-const VERSION = 'reverso-v1';
+const VERSION = 'reverso-v2';
 const SHELL = ['/', '/index.html', '/css/style.css', '/js/app.js', '/js/audio.js', '/js/match.js', '/js/names.js',
   '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 

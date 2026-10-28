@@ -32,7 +32,7 @@ function decode(arr) {
 export async function load(url) {
   if (cache.has(url)) return cache.get(url);
   const p = fetch(url).then(r => { if (!r.ok) throw new Error('áudio ' + r.status); return r.arrayBuffer(); })
-    .then(decode).then(b => clean(b, 0.02));
+    .then(decode).then(b => clean(b));
   cache.set(url, p);
   p.catch(() => cache.delete(url));
   return p;
@@ -48,22 +48,39 @@ export function reverse(buf) {
   return out;
 }
 
-// Corta silêncio do começo/fim, normaliza volume e aplica fades curtos (evita estalos).
-export function clean(buf, threshold = 0.03) {
+// Pedaço inicial do áudio (dica "ouvir o começo"), com fade no corte.
+export function head(buf, frac) {
+  const c = audioCtx();
+  const len = Math.max(1, Math.floor(buf.length * frac));
+  const out = c.createBuffer(1, len, buf.sampleRate);
+  const s = buf.getChannelData(0), o = out.getChannelData(0);
+  const f = Math.min(len, Math.floor(buf.sampleRate * 0.08));
+  for (let i = 0; i < len; i++) o[i] = s[i] * (i > len - f ? (len - i) / f : 1);
+  return out;
+}
+
+// Corta só o silêncio de verdade do começo/fim (sem comer consoantes fracas como "s", "f", "n"),
+// normaliza o volume e aplica fades curtos (evita estalos).
+// O limite é calculado a partir do ruído de fundo, não do pico da voz.
+export function clean(buf, { padSec = 0.12 } = {}) {
   const c = audioCtx();
   const data = buf.getChannelData(0);
   const n = data.length, sr = buf.sampleRate;
   let peak = 0;
   for (let i = 0; i < n; i++) { const v = Math.abs(data[i]); if (v > peak) peak = v; }
   if (peak < 0.003) return buf;
-  const win = Math.floor(sr * 0.01), thr = peak * threshold * 4;
-  const rms = (s) => { let a = 0; for (let i = s; i < s + win && i < n; i++) a += data[i] * data[i]; return Math.sqrt(a / win); };
-  let start = 0, end = n;
-  for (let i = 0; i < n; i += win) if (rms(i) > thr) { start = i; break; }
-  for (let i = n - win; i > 0; i -= win) if (rms(i) > thr) { end = i + win; break; }
-  const pad = Math.floor(sr * 0.06);
-  start = Math.max(0, start - pad); end = Math.min(n, end + pad);
-  if (end - start < sr * 0.15) { start = 0; end = n; }
+  const win = Math.floor(sr * 0.01);
+  const rmsArr = [];
+  for (let s = 0; s + win <= n; s += win) { let a = 0; for (let i = s; i < s + win; i++) a += data[i] * data[i]; rmsArr.push(Math.sqrt(a / win)); }
+  const sorted = rmsArr.slice().sort((a, b) => a - b);
+  const noise = sorted[Math.floor(sorted.length * 0.1)] || 0;
+  const thr = Math.max(noise * 2.5, peak * 0.012);
+  let first = 0, last = rmsArr.length - 1;
+  while (first < rmsArr.length && rmsArr[first] <= thr) first++;
+  while (last > first && rmsArr[last] <= thr) last--;
+  const pad = Math.floor(sr * padSec);
+  let start = Math.max(0, first * win - pad), end = Math.min(n, (last + 1) * win + pad);
+  if (first >= rmsArr.length || end - start < sr * 0.15) { start = 0; end = n; }
   const len = end - start;
   const out = c.createBuffer(1, len, sr);
   const o = out.getChannelData(0);
@@ -115,9 +132,10 @@ export class Recorder {
   async start({ onLevel, maxSec = 7, onAutoStop } = {}) {
     stop();
     const c = audioCtx();
+    if (c.state !== 'running') { try { await Promise.race([c.resume(), new Promise(r => setTimeout(r, 400))]); } catch {} }
     try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch {}
     this.stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 }
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 }
     });
     this.chunks = [];
     this.src = c.createMediaStreamSource(this.stream);
@@ -149,7 +167,7 @@ export class Recorder {
     const d = buf.getChannelData(0);
     let o = 0; for (const ch of this.chunks) { d.set(ch, o); o += ch.length; }
     this.chunks = [];
-    return clean(buf, 0.06);
+    return clean(buf, { padSec: 0.15 });
   }
 
   elapsed() { return (performance.now() - this.t0) / 1000; }
